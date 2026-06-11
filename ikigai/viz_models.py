@@ -24,15 +24,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from itertools import combinations
 
-# Letras canonicas para hasta 5 circulos. El modelo Ikigai *clasico* usa solo
-# 4 (L, G, W, P), pero el MOTOR de render soporta hasta 5 primitivos (Venn de
-# 5 elipses de Grunbaum). Mantener 5 letras aqui evita el "abcde" a medias que
-# tenia el frontend: ahora dato y geometria coinciden en su tope (N=5).
-CIRCLE_LETTERS = ["a", "b", "c", "d", "e"]
+# Letras canonicas para los 4 circulos del modelo Ikigai (L, G, W, P).
+# Engine y producto comparten el mismo tope: N=4 (Edwards 1989, 15 regiones).
+CIRCLE_LETTERS = ["a", "b", "c", "d"]
 
-# Tope del MOTOR de render (5 primitivos). El app Ikigai restringe a 4 en su
-# endpoint /categories; esta constante es la verdad del engine, no del producto.
-MAX_CIRCLES = 5
+# Tope del motor de render Y del producto (el endpoint /categories tambien
+# valida max 4). Dato y geometria coinciden en N=4.
+MAX_CIRCLES = 4
 
 
 def region_keys(n_circles: int) -> list[str]:
@@ -41,7 +39,7 @@ def region_keys(n_circles: int) -> list[str]:
     Cada key es la concatenacion ordenada de las letras involucradas.
     Ejemplo N=3: ['a', 'b', 'c', 'ab', 'ac', 'bc', 'abc']
     N=0: [] (no hay regiones internas; solo el universo via "out")
-    N=5: 31 regiones (el motor las soporta; el app clasico se queda en 4).
+    N=4: 15 regiones (Ikigai clasico completo; tope del motor).
     """
     if not (0 <= n_circles <= MAX_CIRCLES):
         raise ValueError(
