@@ -1,0 +1,270 @@
+{% extends "_base.html.j2" %}
+{% set active_section = 'viz' %}
+
+{% block title %}Visualizador · ikigai 🌷{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/viz/viz.css">
+{% endblock %}
+
+{% block page_title %}🌷 {{ viz.title }} · Visualizador{% endblock %}
+
+{% block header_right %}
+<span class="hidden sm:inline">💾 cambios al instante</span>
+{% endblock %}
+
+{% block main %}
+{# ═══════ SUB-TOOLBAR sticky (debajo del chrome top-14) ═══════
+   Una sola fila con: progreso de sintesis + selector de cuadrantes +
+   export. El resumen ejecutivo se mueve al area del venn (no sticky)
+   porque es write-once / read-occasional. #}
+<div class="sticky top-14 z-20 bg-white border-b border-ink-50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 h-10 flex items-center gap-3">
+    <span class="text-[10px] font-bold uppercase tracking-widest text-ink-120 whitespace-nowrap">Síntesis</span>
+    <div class="flex items-center gap-2 w-32 shrink-0">
+      <div class="flex-1 h-1.5 bg-ink-10 rounded-full overflow-hidden">
+        <div id="synthesis-progress-bar" class="h-full bg-success-100 transition-all duration-500" style="width: 0%"></div>
+      </div>
+      <span id="synthesis-progress-text" class="text-[10px] font-bold text-ink-100 tabular-nums whitespace-nowrap">0/0</span>
+    </div>
+    <span id="circle-count" class="text-[10px] uppercase tracking-tighter bg-ink-10 px-1.5 py-0.5 rounded text-ink-120 font-bold whitespace-nowrap">
+      {{ viz.n_circles() }} círculo{{ '' if viz.n_circles() == 1 else 's' }}
+    </span>
+
+    <div class="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto" id="cat-selector">
+      {% for pair in cuadrantes %}
+        <button type="button"
+                class="cat-pill {% if pair.positivo.csv_value in viz.categories %}active{% endif %}"
+                draggable="true"
+                data-csv-value="{{ pair.positivo.csv_value }}"
+                data-neg-value="{{ pair.negativo.csv_value }}"
+                data-polarity="positivo"
+                data-label="{{ pair.titulo }}"
+                aria-pressed="{{ 'true' if pair.positivo.csv_value in viz.categories else 'false' }}"
+                aria-label="Cuadrante {{ pair.titulo }}"
+                title="{{ pair.titulo }} — + {{ pair.positivo.label }} (interior) / − {{ pair.negativo.label }} (exterior)">
+          <span>{{ pair.positivo.emoji }}</span>
+          <span class="font-medium">{{ pair.titulo }}</span>
+          <span class="text-xs opacity-60">{{ pair.positivo.csv_value }}±</span>
+        </button>
+      {% endfor %}
+    </div>
+
+    <span id="cat-status" class="text-[10px] text-ink-120 flex items-center gap-1 whitespace-nowrap">
+      <span id="cat-count">{{ viz.categories|length }}</span>/4
+      <span id="cat-warning" class="text-danger-100 hidden">⚠️</span>
+    </span>
+
+    <button type="button" id="btn-export-svg"
+            class="px-2 py-1 text-xs bg-white border border-ink-50 rounded hover:bg-brand-100 hover:text-white hover:border-brand-100 transition-colors whitespace-nowrap"
+            title="Descarga el Venn como SVG">
+      💾 SVG
+    </button>
+  </div>
+</div>
+
+<!-- ╔══════════ MAIN: Venn (izq) + cajones read-only (der) ═══════════╗ -->
+<main class="max-w-screen-2xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+  <!-- Resumen ejecutivo (no sticky, vive en el flow normal) -->
+  <div class="lg:col-span-4 bg-white rounded-lg border border-ink-50 px-4 py-2 flex items-center gap-3">
+    <label for="viz-summary" class="text-xs uppercase tracking-wider font-semibold text-ink-120 whitespace-nowrap">
+      📝 Resumen
+    </label>
+    <textarea id="viz-summary" rows="1"
+              class="flex-1 px-3 py-1 border border-ink-50 rounded text-sm focus:outline-none focus:border-brand-100 focus:ring-2 focus:ring-brand-100 focus:ring-opacity-20 resize-y"
+              placeholder="Una frase macro: ¿qué sintetiza esta combinación de cuadrantes para ti?">{{ viz.summary }}</textarea>
+    <span id="viz-summary-status" class="text-xs text-ink-120 whitespace-nowrap" aria-live="polite"></span>
+  </div>
+
+  <!-- Venn (3 de 4 cols = 75%). Container generoso: height dinámica para
+       que el SVG (viewBox landscape ~1.58:1 a ~1.11:1 según #categorias)
+       respire vertical y horizontalmente. min-height alto para que en
+       pantallas chicas siga teniendo presencia. -->
+  <section class="lg:col-span-3 bg-white rounded-lg border border-ink-50 p-4 sticky top-28 self-start" style="height: calc(100vh - 140px); min-height: 640px;">
+    <div id="venn-host" class="w-full h-full flex items-center justify-center">
+      <!-- SVG inyectado por JS -->
+    </div>
+  </section>
+
+  <!-- Cajones READ-ONLY (1 col): solo mostrar items por tag. -->
+  <aside class="lg:col-span-1 space-y-4">
+    {% set _active_set = viz.categories %}
+    {% set _ordered_pairs = [] %}
+    {% for cat in viz.categories %}
+      {% for pair in cuadrantes if pair.positivo.csv_value == cat %}
+        {% set _ = _ordered_pairs.append(pair) %}
+      {% endfor %}
+    {% endfor %}
+    {% for pair in cuadrantes if pair.positivo.csv_value not in _active_set %}
+      {% set _ = _ordered_pairs.append(pair) %}
+    {% endfor %}
+    {% for pair in _ordered_pairs %}
+      {% set pos_val = pair.positivo.csv_value %}
+      {% set neg_val = pair.negativo.csv_value %}
+      {% set _is_active = pos_val in _active_set %}
+      <details class="bg-white rounded-xl border border-ink-50 shadow-sm hover:shadow-md transition-shadow group/cajon overflow-hidden"
+               data-csv-value="{{ pos_val }}"
+               data-inactive="{{ '' if _is_active else '1' }}">
+        <summary class="cursor-pointer p-4 flex items-center gap-3 text-sm font-medium hover:bg-ink-5 select-none transition-colors">
+          <span class="text-xl group-open/cajon:scale-110 transition-transform">{{ pair.positivo.emoji }}</span>
+          <span class="flex-1">
+            {# Sintesis del dominio (prominente) #}
+            {% set _synth = primitive_concepts.get(pos_val, '') %}
+            {% if _synth %}
+              <span class="text-brand-100 font-bold text-base leading-tight block">“{{ _synth }}”</span>
+              <span class="text-[11px] uppercase tracking-wider text-ink-100 font-semibold">Dominio: {{ pair.titulo }}</span>
+            {% else %}
+              <span class="text-ink-160 font-bold block">{{ pair.titulo }}</span>
+              <span class="text-[10px] text-ink-100 italic">Haz click en el Venn para nombrar...</span>
+            {% endif %}
+          </span>
+          <div class="flex flex-col items-end gap-1">
+            <span class="text-[10px] font-mono bg-ink-10 px-1.5 py-0.5 rounded text-ink-120">
+              {{ items_by_cuad[pos_val]|length }}+ / {{ items_by_cuad[neg_val]|length }}−
+            </span>
+            <span class="text-ink-50 group-open/cajon:rotate-180 transition-transform">▼</span>
+          </div>
+        </summary>
+
+        <div class="px-4 pb-4 pt-2 border-t border-ink-5 bg-ink-5/30">
+          <p class="text-xs font-normal italic text-ink-120 mb-4 px-1">{{ pair.pregunta }}</p>
+          <!-- Lado positivo -->
+          <div class="flex items-center gap-1 mt-1 mb-1 text-xs text-success-110">
+            <span>{{ pair.positivo.emoji }}</span>
+            <span class="font-semibold">{{ pair.positivo.label }}</span>
+            <span class="ml-auto text-ink-120">va al INTERIOR</span>
+          </div>
+          <ul class="space-y-1 max-h-44 overflow-y-auto mb-3 border-l-2 border-success-100 pl-2">
+            <details class="group/items">
+              <summary class="text-[11px] text-ink-100 cursor-pointer hover:text-success-110 flex items-center gap-1 select-none mb-1">
+                <span class="group-open/items:rotate-90 transition-transform">▸</span>
+                Ver {{ items_by_cuad[pos_val]|length }} items positivos
+              </summary>
+              <div class="space-y-1 pt-1">
+                {% for it in items_by_cuad[pos_val] %}
+                  <li class="item-chip"
+                      data-item-id="{{ it.id }}"
+                      data-item-text="{{ it.item }}"
+                      data-cuadrante="{{ pos_val }}"
+                      title="Item {{ it.id }} — edita en /inventario">
+                    <span class="item-id">{{ it.id }}</span>
+                    <span class="flex-1 item-text">{{ it.item }}</span>
+                  </li>
+                {% endfor %}
+              </div>
+            </details>
+            {% if items_by_cuad[pos_val]|length == 0 %}
+              <li class="text-xs italic text-ink-100 py-3 px-2 bg-white rounded border border-dashed border-ink-50 text-center">
+                ✨ Tu pasión te espera... <br/>
+                <a href="{{ ikigai_url }}/inventario" class="text-brand-100 hover:underline font-medium">añade items aquí →</a>
+              </li>
+            {% endif %}
+          </ul>
+
+          <!-- Lado negativo -->
+          <div class="flex items-center gap-1 mb-1 text-xs text-danger-100">
+            <span>{{ pair.negativo.emoji }}</span>
+            <span class="font-semibold">{{ pair.negativo.label }}</span>
+            <span class="ml-auto text-ink-120">va al EXTERIOR</span>
+          </div>
+          <ul class="space-y-1 max-h-44 overflow-y-auto border-l-2 border-danger-100 pl-2">
+            <details class="group/items">
+              <summary class="text-[11px] text-ink-100 cursor-pointer hover:text-danger-110 flex items-center gap-1 select-none mb-1">
+                <span class="group-open/items:rotate-90 transition-transform">▸</span>
+                Ver {{ items_by_cuad[neg_val]|length }} items negativos
+              </summary>
+              <div class="space-y-1 pt-1">
+                {% for it in items_by_cuad[neg_val] %}
+                  <li class="item-chip"
+                      data-item-id="{{ it.id }}"
+                      data-item-text="{{ it.item }}"
+                      data-cuadrante="{{ neg_val }}"
+                      title="Item {{ it.id }} — edita en /inventario">
+                    <span class="item-id">{{ it.id }}</span>
+                    <span class="flex-1 item-text">{{ it.item }}</span>
+                  </li>
+                {% endfor %}
+              </div>
+            </details>
+            {% if items_by_cuad[neg_val]|length == 0 %}
+              <li class="text-xs italic text-ink-100 py-3 px-2 bg-white rounded border border-dashed border-ink-50 text-center">
+                La sombra está despejada. <br/>
+                <a href="{{ ikigai_url }}/inventario" class="text-brand-100 hover:underline font-medium">añade items aquí →</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </details>
+    {% endfor %}
+  </aside>
+</main>
+{% endblock %}
+
+{% block after_main %}
+<!-- ╔══════ EDITOR DE REGIÓN (sticky bottom panel — solo concepto) ═══════╗ -->
+<section id="region-editor" class="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-brand-100 shadow-2xl transform translate-y-full transition-transform z-30">
+  <div class="max-w-7xl mx-auto p-4">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <span id="region-badge" class="region-badge bg-brand-100 text-white">a</span>
+        <span id="region-label" class="font-semibold ml-2 text-ink-160">Región</span>
+      </div>
+      <button type="button" id="region-close"
+              class="text-ink-120 hover:text-ink-160 text-xl flex items-center justify-center"
+              style="min-width:32px;min-height:32px"
+              aria-label="Cerrar editor de region">✕</button>
+    </div>
+
+    <!-- Tagline + warning para intersecciones canonicas del Ikigai clasico -->
+    <div id="region-canonical" class="hidden mb-3 -mt-1 p-3 rounded border-l-4">
+      <p id="region-tagline" class="text-sm text-ink-160 italic"></p>
+      <p id="region-warning" class="text-xs text-ink-120 mt-1 hidden">
+        <span class="font-semibold">⚠️ Si solo tienes esta intersección:</span>
+        <span id="region-warning-text"></span>
+      </p>
+    </div>
+
+    <label class="block text-xs uppercase tracking-wider text-ink-120 mb-1">💡 Concepto de esta intersección</label>
+    <div class="flex gap-2 mb-2">
+      <input type="text" id="region-concept" maxlength="200"
+             placeholder="Ej. 'Mentoría que transforma vidas'"
+             class="flex-1 px-3 py-2 border border-ink-50 rounded focus:outline-none focus:border-brand-100 focus:ring-2 focus:ring-brand-100 focus:ring-opacity-20" />
+    </div>
+
+    <label class="block text-xs uppercase tracking-wider text-ink-120 mb-1">📌 Items en esta región (derivados del CSV)</label>
+    <div id="region-evidence" class="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-ink-5 border border-ink-50 rounded">
+      <span class="text-xs italic text-ink-120">Selecciona una región del Venn para verla.</span>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block body_scripts %}
+<!-- ═════════════ JS: bootstrap inline + módulos viz_*.js ═════════════ -->
+<script>
+  window.VIZ = null;  // se carga desde /visualizador/data en DOMContentLoaded
+  window.ACTIVE_REGION = null;
+  window.CSV_LABELS = {
+    {% for pair in cuadrantes %}
+      {% for side in [pair.positivo, pair.negativo] %}
+        "{{ side.csv_value }}": {label: "{{ pair.titulo }} · {{ side.label }}", titulo: "{{ pair.titulo }}", sublabel: "{{ side.label }}", emoji: "{{ side.emoji }}"},
+      {% endfor %}
+    {% endfor %}
+  };
+  // Nombres canonicos del Ikigai clasico para las intersecciones.
+  // Lookup key: csv_values ordenados join coma ("1,2", "1,2,3,4").
+  window.CANONICAL_INTERSECTIONS = {{ canonical_intersections|tojson }};
+
+  // Conceptos sinteticos por dominio individual (csv_value -> palabra).
+  // El Venn los renderiza como subtitulo del label de cada circulo. Compartidos
+  // con /sintesis a traves de intersection_concepts.yaml.
+  window.PRIMITIVE_CONCEPTS = {{ primitive_concepts|tojson }};
+</script>
+
+<!-- Modulos del visualizador (orden importa: helpers -> geometry -> resto -> main) -->
+<script src="/static/viz/viz_helpers.js"></script>
+<script src="/static/viz/viz_geometry.js"></script>
+<script src="/static/viz/viz_regions.js"></script>
+<script src="/static/viz/viz_sidebar.js"></script>
+<script src="/static/viz/viz_main.js"></script>
+{% endblock %}

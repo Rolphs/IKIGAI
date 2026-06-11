@@ -1,0 +1,239 @@
+<!doctype html>
+{# ============================================================
+   SNAPSHOT ESTATICO DEL IKIGAI PERSONAL
+   ============================================================
+   - Sin JS interactivo (Tailwind CSS vendorizado inline, sin HTMX, sin alpine)
+   - Sin assets locales (auto-contenido: copia el .html a otra maquina y abre)
+   - WCAG 2.2 AA: contraste OK, headings semanticos, alt en emojis decorativos
+   - Colores del proyecto
+   - Estructura: cimientos (capa 0) -> capas intermedias -> centro Ikigai
+============================================================ #}
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>⭐ {{ ikigai.personal_name if ikigai and ikigai.personal_name else 'Mi Ikigai' }} · snapshot</title>
+    <style>{{ tailwind_css | safe }}</style>
+    <style>
+      .notation { font-family: "Cambria Math", "STIX Two Math", Georgia, serif; }
+      .csub { font-size: 0.7em; vertical-align: sub; letter-spacing: 0.5px; }
+      /* Cards aseguradas: efecto plata metalico igual que la app */
+      .card-secured {
+        background: white;
+        border: 2px solid #74767c;
+      }
+      .card-pending {
+        background: rgba(255, 194, 32, 0.12);
+        border: 1px dashed rgba(255, 194, 32, 0.6);
+      }
+      /* Centro Ikigai: brillo extra */
+      .ikigai-trophy {
+        background: linear-gradient(135deg, #fff8ec 0%, white 50%, #fff8ec 100%);
+        border: 3px solid #f59e0b;
+        box-shadow: 0 8px 24px rgba(255, 194, 32, 0.25);
+      }
+    </style>
+  </head>
+  <body class="bg-ink-5 text-ink-160 font-sans">
+
+    <!-- ╔════════ HERO: el Ikigai como titulo ════════╗ -->
+    <header class="bg-white border-b border-ink-50">
+      <div class="max-w-5xl mx-auto px-6 py-8 text-center">
+        <p class="text-xs uppercase tracking-widest text-ink-100 mb-2">
+          Snapshot de Ikigai · {{ project_name }}
+        </p>
+        {% if ikigai and ikigai.personal_name %}
+          <h1 class="text-4xl md:text-5xl font-bold text-brand-100 leading-tight">
+            ⭐ {{ ikigai.personal_name }}
+          </h1>
+          <p class="text-sm text-ink-120 italic mt-2">
+            Tu razón de ser, sintetizada en una palabra.
+          </p>
+        {% else %}
+          <h1 class="text-3xl md:text-4xl font-bold text-ink-160 leading-tight">
+            Mi Ikigai <span class="text-accent-140 text-2xl">(en construcción)</span>
+          </h1>
+          <p class="text-sm text-ink-120 italic mt-2">
+            El centro aún no está acuñado — este snapshot muestra el progreso hasta ahora.
+          </p>
+        {% endif %}
+        <div class="mt-4 inline-flex items-center gap-3 text-xs text-ink-120">
+          <span class="px-2 py-0.5 bg-ink-10 rounded-full">
+            📅 {{ exported_at }}
+          </span>
+          <span class="px-2 py-0.5 bg-ink-10 rounded-full">
+            📜 {{ universe_size }} items
+          </span>
+          <span class="px-2 py-0.5 rounded-full
+                       {% if is_complete %}bg-success-10 text-success-110{% else %}bg-accent-10 text-accent-140{% endif %}">
+            {{ total_secured }}/{{ total_concepts }} síntesis acuñadas
+            {% if is_complete %} ✓{% endif %}
+          </span>
+          {% if redacted %}
+            <span class="px-2 py-0.5 bg-brand-100/10 text-brand-100 rounded-full font-semibold">
+              🔒 versión compartible (sin items)
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-8 space-y-12">
+
+      {# ─── EL HERO REAL: el Venn de 4 circulos con todas las sintesis encima ─── #}
+      {# Hidden on mobile, shown on desktop (Edwards configuration is hard to read on phones) #}
+      <section class="hidden md:block">
+        {% include "_venn4_hero.html.j2" %}
+      </section>
+
+      {# Mobile alternative: List of Top Synthesis #}
+      <section class="block md:hidden space-y-4">
+        <header class="text-center">
+          <h2 class="text-lg font-bold text-brand-100 uppercase tracking-tight">🗺️ Tu Árbol de Síntesis</h2>
+          <p class="text-[10px] text-ink-100 italic">Resumen optimizado para móvil</p>
+        </header>
+        <div class="space-y-2">
+          {% set mobile_highlights = ['abcd', 'ab', 'ac', 'ad', 'bc', 'bd', 'cd'] %}
+          {% for key in mobile_highlights %}
+            {% set c = venn_regions_by_key.get(key) %}
+            {% if c and c.personal_name %}
+              <div class="bg-white p-4 rounded-xl border border-ink-50 shadow-sm">
+                <p class="text-[10px] uppercase font-bold text-ink-100 tracking-widest">{{ c.canonical_name or c.label }}</p>
+                <p class="text-base font-bold text-brand-100">“{{ c.personal_name }}”</p>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+
+      {# ─── Separador narrativo: del Venn al desglose por capa ─── #}
+      <section class="text-center -my-4">
+        <h2 class="text-base font-semibold text-ink-120 inline-flex items-center gap-2">
+          <span class="inline-block w-12 h-px bg-ink-50"></span>
+          🔍 Desglose por capas — cómo se construyó
+          <span class="inline-block w-12 h-px bg-ink-50"></span>
+        </h2>
+      </section>
+
+      {# ─── Cimientos: los 4 primitivos ─── #}
+      <section>
+        <header class="mb-4 border-b-2 border-brand-100/20 pb-2">
+          <h2 class="text-xl font-bold text-brand-100">⓪ Cimientos · 4 círculos</h2>
+          <p class="text-xs text-ink-120 italic">
+            La materia prima. Cada círculo representa una dimensión del Ikigai.
+          </p>
+        </header>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {% for c in cards_by_layer[0] %}
+            {% include "_card_static.html.j2" %}
+          {% endfor %}
+        </div>
+      </section>
+
+      {# ─── Capa 1: primeras alquimias ─── #}
+      <section>
+        <header class="mb-4 border-b-2 border-brand-100/20 pb-2">
+          <h2 class="text-xl font-bold text-brand-100">➀ Primeras síntesis · 6 pares</h2>
+          <p class="text-xs text-ink-120 italic">
+            Combinaciones de dos círculos. Pasión, Misión, Profesión, Vocación + 2 diagonales.
+          </p>
+        </header>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {% for c in cards_by_layer[1] %}
+            {% include "_card_static.html.j2" %}
+          {% endfor %}
+        </div>
+      </section>
+
+      {# ─── Capa 2: casi-Ikigai ─── #}
+      <section>
+        <header class="mb-4 border-b-2 border-brand-100/20 pb-2">
+          <h2 class="text-xl font-bold text-brand-100">➁ Casi-Ikigai · 4 tríos</h2>
+          <p class="text-xs text-ink-120 italic">
+            Tres círculos juntos. A un paso del centro: cada uno tiene 1 ingrediente faltante.
+          </p>
+        </header>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {% for c in cards_by_layer[2] %}
+            {% include "_card_static.html.j2" %}
+          {% endfor %}
+        </div>
+      </section>
+
+      {# ─── Capa 3: el centro (destacado, ancho completo) ─── #}
+      {% if ikigai %}
+        <section>
+          <header class="mb-4 border-b-2 border-accent-100 pb-2">
+            <h2 class="text-xl font-bold text-accent-140">⭐ El centro · Ikigai</h2>
+            <p class="text-xs text-ink-120 italic">
+              Convergencia total. La síntesis de todas las síntesis.
+            </p>
+          </header>
+          <div class="max-w-2xl mx-auto">
+            {% with c=ikigai %}
+              {% include "_card_static.html.j2" %}
+            {% endwith %}
+          </div>
+        </section>
+      {% endif %}
+
+      {# ─── Lo que sembraste: items por círculo ─── #}
+      <section>
+        <header class="mb-4 border-b-2 border-success-100/20 pb-2">
+          <h2 class="text-xl font-bold text-success-110">📜 Lo que sembraste</h2>
+          <p class="text-xs text-ink-120 italic">
+            {% if redacted %}
+              Conteos por círculo. El contenido textual de los items está oculto en esta versión compartible.
+            {% else %}
+              Los items crudos de cada círculo — la materia prima que destilaste arriba.
+            {% endif %}
+          </p>
+        </header>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {% for pair in cuadrantes %}
+            {% set csv_val = pair.positivo.csv_value %}
+            {% set items = items_per_positive[csv_val] %}
+            <div class="bg-white rounded-lg border border-ink-50 p-3">
+              <h3 class="text-sm font-bold text-success-110 border-b border-ink-10 pb-1 mb-2">
+                C<span class="csub">{{ csv_val }}</span> · {{ pair.positivo.label }}
+                <span class="text-xs font-normal text-ink-100">({{ items|length }})</span>
+              </h3>
+              {% if redacted %}
+                {# Modo compartible: solo el conteo, sin texto. Hace al snapshot publicable
+                   sin exponer contenido personal sensible. #}
+                <p class="text-center py-4">
+                  <span class="text-2xl font-bold text-ink-160">{{ items|length }}</span>
+                  <span class="block text-[10px] uppercase tracking-wider text-ink-100 mt-1">
+                    {% if items|length == 1 %}item{% else %}items{% endif %} 🔒
+                  </span>
+                </p>
+              {% elif items %}
+                <ul class="space-y-1 text-xs">
+                  {% for it in items %}
+                    <li class="flex gap-2 items-baseline">
+                      <span class="font-mono text-[10px] text-ink-100 whitespace-nowrap">{{ it.id }}</span>
+                      <span class="text-ink-160 flex-1">{{ it.item }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-xs text-ink-100 italic">Sin items.</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="max-w-5xl mx-auto px-6 py-8 text-center text-xs text-ink-120">
+      Generado por <span class="font-semibold">ikigai 🌷</span> · snapshot estático autocontenido
+      <br>
+      <span class="opacity-75">
+        Tu Ikigai vivo (interactivo): http://localhost:8000 cuando corras
+        <code class="font-mono">ikigai serve {{ project_name }}</code>
+      </span>
+    </footer>
+
+  </body>
+</html>

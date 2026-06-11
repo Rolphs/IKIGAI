@@ -1,0 +1,70 @@
+{% extends "_base.html.j2" %}
+{# Wizard de creacion de un ikigai nuevo. ikigai_name="" -> el chrome NO
+   muestra el switcher (no hay current). El usuario llega aqui desde el
+   dropdown ("+ Nuevo ikigai") o desde / cuando el workspace esta vacio.
+
+   UX: un SOLO campo libre ("Nombre del ikigai"). El slug (URL + carpeta) se
+   deriva automaticamente y se muestra en vivo como preview (HTMX). Para el
+   1% power-user, un <details> "avanzado" permite forzar el slug a mano. #}
+{% set active_section = '' %}
+{% block title %}Nuevo ikigai 🌷{% endblock %}
+{% block page_title %}Crear nuevo ikigai{% endblock %}
+{% block main %}
+<main class="max-w-xl mx-auto px-6 py-12">
+  <div class="bg-white rounded-2xl border border-ink-50 shadow-sm p-8">
+    <h2 class="text-2xl font-bold text-ink-160 mb-2">🌷 Empezar un Ikigai nuevo</h2>
+    <p class="text-sm text-ink-100 mb-6">
+      Solo dale un nombre. Nosotros generamos la direccion (URL) y la carpeta
+      automaticamente; puedes poner mayusculas, acentos o emojis sin problema.
+    </p>
+    <form method="POST" action="/_new" class="space-y-5">
+      <div>
+        <label for="name" class="block text-sm font-semibold text-ink-160 mb-1">
+          Nombre del ikigai <span class="text-danger-100" aria-label="requerido">*</span>
+        </label>
+        <input type="text" id="name" name="name" required autofocus
+               placeholder="Maria Lopez (Ingeniera Senior)"
+               maxlength="120"
+               autocomplete="off"
+               hx-get="/_new/slug-preview"
+               hx-trigger="keyup changed delay:300ms, load"
+               hx-target="#slug-preview"
+               class="w-full px-3 py-2 border border-ink-50 rounded text-sm focus:outline-none focus:border-brand-100 focus:ring-2 focus:ring-brand-100 focus:ring-opacity-20" />
+        <p id="slug-preview" class="text-xs mt-1.5 flex items-center gap-1.5"
+           aria-live="polite">
+          <span class="text-ink-50">Escribe un nombre para ver su URL&hellip;</span>
+        </p>
+      </div>
+
+      <details class="group border border-ink-50 rounded-lg">
+        <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium text-ink-100 hover:text-ink-160 flex items-center gap-2">
+          ⚙️ Avanzado &mdash; personalizar la URL (slug)
+        </summary>
+        <div class="px-3 pb-3 pt-1 border-t border-ink-50">
+          <label for="slug" class="block text-xs font-semibold text-ink-160 mb-1 mt-2">
+            Slug manual (opcional)
+          </label>
+          <input type="text" id="slug" name="slug"
+                 pattern="[a-z0-9][a-z0-9_-]{0,49}"
+                 placeholder="maria-lopez"
+                 class="w-full px-3 py-2 border border-ink-50 rounded text-sm focus:outline-none focus:border-brand-100 focus:ring-2 focus:ring-brand-100 focus:ring-opacity-20" />
+          <p class="text-xs text-ink-100 mt-1">
+            Si lo dejas vacio, lo derivamos del nombre. Solo minusculas,
+            numeros, guion (-) o underscore (_). 1-50 caracteres.
+          </p>
+        </div>
+      </details>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <a href="/" class="px-4 py-2 text-sm font-medium text-ink-100 hover:text-ink-160">
+          Cancelar
+        </a>
+        <button type="submit"
+                class="px-5 py-2 bg-brand-100 hover:bg-brand-110 text-white rounded font-medium text-sm">
+          Crear y empezar &rarr;
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}

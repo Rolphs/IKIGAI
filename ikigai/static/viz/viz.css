@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════════════
+ * viz.css — estilos del visualizador de Ikigai
+ *
+ * Extraído de visualizador.html.j2 para mantener el template bajo el
+ * límite de líneas y poder editar estilos sin tocar HTML.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Regiones del Venn (hit-areas circulares clickeables) ─── */
+.venn-region {
+  cursor: pointer;
+  fill: transparent;
+  stroke: transparent;
+  transition: all 120ms;
+}
+.venn-region:hover {
+  fill: rgba(29, 29, 29, 0.07);
+  stroke: #1d1d1d;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.venn-region.active {
+  fill: rgba(0, 83, 226, 0.12);
+  stroke: #d81b76;
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+
+/* ─── MEJORA #2: highlight de la FORMA REAL de cada region ───
+ * Cada .venn-hl es la geometria exacta de una region (interseccion via
+ * clip-paths + exclusion via mask). Invisible en reposo; se revela al hacer
+ * hover (.hover) o al activar la region (.active). pointer-events:none para
+ * que los clicks sigan llegando a los hit-circles de arriba. */
+.venn-hl {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+.venn-hl.hover { opacity: 0.55; }
+.venn-hl.active { opacity: 0.85; }
+
+/* ─── MEJORA #5: hint de descubribilidad ───
+ * Los badges de regiones CON concepto laten suavemente al cargar, invitando
+ * al click. Respeta prefers-reduced-motion (accesibilidad). */
+@keyframes venn-badge-pulse {
+  0%, 100% { opacity: 0.92; }
+  50%      { opacity: 0.62; }
+}
+.venn-badge.has-concept {
+  animation: venn-badge-pulse 2.4s ease-in-out 3;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .venn-badge.has-concept { animation: none; }
+  .venn-hl { transition: none; }
+}
+
+/* ─── Zona exterior "out" (espacio negativo) ─── */
+.venn-out-zone {
+  cursor: pointer;
+  fill: rgba(234, 17, 0, 0.04);
+  stroke: #dc2626;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  transition: all 120ms;
+}
+.venn-out-zone:hover { fill: rgba(234, 17, 0, 0.10); }
+.venn-out-zone.active {
+  fill: rgba(234, 17, 0, 0.15);
+  stroke-width: 3;
+}
+
+/* Drag target highlight en cualquier región del Venn */
+.venn-region.drag-over {
+  fill: rgba(255, 194, 32, 0.35) !important;
+  stroke: #f59e0b !important;
+  stroke-width: 3 !important;
+  stroke-dasharray: none !important;
+}
+
+/* ─── Pills de categorías (cuadrantes seleccionables) ───
+ * El pill DEBE ser visualmente mas grande que el texto que contiene
+ * (sino se ve apretado). Padding generoso + min-height + line-height
+ * controlado + justify-content center garantizan que emoji + label + ±
+ * queden centrados, alineados y con respiro. */
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  min-height: 40px;
+  line-height: 1.1;
+  border-radius: 999px;
+  border: 1.5px solid #cfd3d6;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  /* 'transform' se anima aparte (FLIP); el resto va por aquí. */
+  transition: opacity 200ms ease, border-color 120ms ease,
+              background 120ms ease, color 120ms ease;
+  opacity: 0.55;  /* default tenue = no seleccionado */
+}
+.cat-pill:hover { border-color: #d81b76; opacity: 0.88; }
+.cat-pill.active { border-width: 2px; opacity: 1; }
+.cat-pill.active:hover { opacity: 1; }
+.cat-pill[data-polarity="positivo"].active {
+  border-color: #16a34a;
+  background: #ecfdf5;
+  color: #166534;
+}
+.cat-pill[data-polarity="negativo"].active {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #991b1b;
+}
+/* Durante FLIP el JS pone .cat-pill-animating + transform; transición suave al limpiar. */
+.cat-pill-animating {
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.3, 1),
+              opacity 200ms ease, border-color 120ms ease,
+              background 120ms ease, color 120ms ease;
+}
+
+/* ─── Item chips (un chip por item de evidencia/inventario) ─── */
+.item-chip {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: grab;
+  transition: all 100ms;
+}
+.item-chip:active { cursor: grabbing; }
+.item-chip:hover { border-color: #d81b76; background: #eff6ff; }
+.item-chip.in-region { border-color: #16a34a; background: #ecfdf5; }
+.item-chip.dragging { opacity: 0.4; }
+.item-chip .item-id {
+  font-family: ui-monospace, monospace;
+  color: #6b7280;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* ─── Edición de items (siempre activa) ───
+ * Hover sobre un chip = botón ✕ discreto. Doble-click en el texto = inline
+ * edit. Form '+ nuevo' siempre visible al final. Click sobre chip (con región
+ * activa) = toggle evidencia. Drag-al-Venn funciona en paralelo. */
+.chip-delete {
+  /* WCAG 2.2 AA Success Criterion 2.5.8 (Target Size): minimo 24x24 px aun
+     cuando el boton solo aparece en hover. Sin esto, usuarios con motricidad
+     limitada o trackpads chicos no aciertan al ✕. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  color: #9ca3af;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 100ms, color 100ms, background 100ms;
+}
+.chip-delete:hover { color: #dc2626; background: #fef2f2; }
+.chip-add-row { display: list-item; }
+.item-chip .chip-delete { opacity: 0; pointer-events: none; transition: opacity 150ms; }
+.item-chip:hover .chip-delete { opacity: 1; pointer-events: auto; }
+
+/* ─── Cajones del sidebar (activos arriba, inactivos abajo) ─── */
+.cajon { transition: opacity 200ms ease; }
+.cajon[data-inactive="1"] { opacity: 0.5; }
+.cajon[data-inactive="1"]:hover { opacity: 0.85; }
+.cajon-animating {
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.3, 1),
+              opacity 200ms ease;
+}
+
+/* ─── Badge para regiones (nombres canónicos a/b/ab/abc...) ─── */
+.region-badge {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+

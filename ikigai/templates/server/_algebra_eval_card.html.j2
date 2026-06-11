@@ -1,0 +1,48 @@
+﻿{#
+  Card de una expresion evaluada. Se usa tanto en la lista de presets
+  (loop en sintesis.html.j2) como en el resultado del builder (devuelto por
+  POST /sintesis/evaluate via HTMX).
+
+  Espera `e` = dict con: key, label, expression, notation_set, notation_bool,
+  description, matched_items (list[Item]), count.
+
+  Nota: se usa `matched_items` (no `items`) porque `e.items` choca con
+  `dict.items()` en Jinja2 — attribute access gana sobre key access.
+#}
+<article class="expr-card bg-white border border-ink-50 rounded-lg p-3 w-full h-full flex flex-col"
+         data-expr-key="{{ e.key }}">
+  <header class="mb-2">
+    <div class="flex items-baseline justify-between gap-2">
+      <h3 class="text-sm font-semibold text-ink-160">{{ e.label }}</h3>
+      <span class="text-[11px] font-mono text-ink-120">
+        |·| = <span class="font-bold text-ink-160">{{ e.count }}</span>
+      </span>
+    </div>
+    {% if e.description %}
+      <p class="text-[11px] text-ink-120 italic mt-0.5">{{ e.description }}</p>
+    {% endif %}
+  </header>
+
+  <div class="notation text-xs space-y-0.5 mb-2 pl-2 border-l-2 border-brand-100/30">
+    <div class="notation-set">{{ e.notation_set }}</div>
+    <div class="notation-bool">≡ {{ e.notation_bool }}</div>
+  </div>
+
+  {% if e.matched_items %}
+    <details class="text-[11px]">
+      <summary class="cursor-pointer text-ink-120 hover:text-ink-160 select-none">
+        Ver los {{ e.count }} item{{ 's' if e.count != 1 else '' }}
+      </summary>
+      <ul class="mt-2 space-y-1 max-h-48 overflow-y-auto">
+        {% for it in e.matched_items %}
+          <li class="set-item" data-item-id="{{ it.id }}" data-cuadrante="{{ it.cuadrante }}">
+            <span class="item-id">{{ it.id }}</span>
+            <span class="item-text">{{ it.item }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% else %}
+    <p class="text-[11px] italic text-ink-120">∅ resultado vacío</p>
+  {% endif %}
+</article>

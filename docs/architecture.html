@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ikigai · Arquitectura v0.3.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#e6f0ff',
+        primaryTextColor: '#1d1d1d',
+        primaryBorderColor: '#d81b76',
+        lineColor: '#74767c',
+        secondaryColor: '#fff4d9',
+        tertiaryColor: '#e8f5e9',
+        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+        fontSize: '14px'
+      },
+      flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true }
+    });
+  </script>
+  <style>
+    :root {
+      --wm-blue: #d81b76;
+      --wm-spark: #f59e0b;
+      --wm-green: #16a34a;
+      --wm-gray-10: #f7f7f7;
+      --wm-gray-160: #1d1d1d;
+    }
+    body { background: var(--wm-gray-10); color: var(--wm-gray-160); }
+    .mermaid { background: white; border-radius: 12px; padding: 24px;
+               box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-x: auto; margin-bottom: 2rem; }
+    h2 { scroll-margin-top: 80px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
+             font-size: 11px; font-weight: 600; }
+    .badge-blue   { background: #e6f0ff; color: var(--wm-blue); }
+    .badge-green  { background: #e8f5e9; color: var(--wm-green); }
+    .badge-gray   { background: #eee;    color: #5b5e64; }
+  </style>
+</head>
+<body class="font-sans">
+
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold">🌷 ikigai · Arquitectura del sistema</h1>
+        <p class="text-sm text-gray-500">Filosofía del proceso · v0.3.0 (Slim)</p>
+      </div>
+      <nav class="hidden md:flex gap-4 text-sm text-gray-600">
+        <a href="#macro" class="hover:text-blue-600">Macro</a>
+        <a href="#capas" class="hover:text-blue-600">Capas</a>
+        <a href="#datos" class="hover:text-blue-600">Datos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-10 space-y-16">
+
+    <!-- 🎯 RESUMEN EJECUTIVO -->
+    <section class="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm">
+      <h2 class="text-xl font-bold mb-4 text-brand-100 flex items-center gap-2">
+        <span>🎯 Single Source of Truth (v0.3.0)</span>
+      </h2>
+      <p class="text-sm text-gray-700 leading-relaxed mb-6">
+        A partir de la versión 0.3.0, Ikigai abandona la gestión manual de regiones y el código legacy para centrarse en un flujo local-first puro. El sistema se basa en el <strong>"Árbol de Síntesis"</strong>:
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+        <div class="p-4 bg-green-50 rounded-xl border border-green-100">
+          <span class="text-2xl mb-2 block">🌱</span>
+          <p class="font-bold text-xs uppercase text-green-800">1. Introspección</p>
+          <p class="text-[10px] text-green-700">Semilla: Captura evocadora</p>
+        </div>
+        <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <span class="text-2xl mb-2 block">🏗️</span>
+          <p class="font-bold text-xs uppercase text-blue-800">2. Inventario</p>
+          <p class="text-[10px] text-blue-700">Cantera: Orden y Etiquetas</p>
+        </div>
+        <div class="p-4 bg-amber-50 rounded-xl border border-amber-100">
+          <span class="text-2xl mb-2 block">⚗️</span>
+          <p class="font-bold text-xs uppercase text-amber-800">3. Síntesis</p>
+          <p class="text-[10px] text-amber-700">Laboratorio: Scroll de Síntesis</p>
+        </div>
+        <div class="p-4 bg-pink-50 rounded-xl border border-pink-100">
+          <span class="text-2xl mb-2 block">🌷</span>
+          <p class="font-bold text-xs uppercase text-pink-800">4. Visualizador</p>
+          <p class="text-[10px] text-pink-700">Tulipán: Mapa Narrativo</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1 · VISTA MACRO -->
+    <section id="macro">
+      <h2 class="text-2xl font-bold mb-4">1 · Vista Macro del Sistema</h2>
+      <p class="text-sm text-gray-600 mb-6">
+        La verdad vive en archivos planos. La app es una lente interactiva sobre ellos.
+      </p>
+      <div class="mermaid">
+flowchart LR
+    User(["👤 Usuario"])
+    
+    subgraph Files["📂 Proyecto (File System)"]
+        f_csv[("tulipan.jsonl<br/>Items + Tags")]
+        f_concepts[("intersection_concepts.yaml<br/>Síntesis acuñadas")]
+        f_viz[("visualizations/default.yaml<br/>Framing y Orden")]
+    end
+
+    subgraph App["🚀 ikigai serve (FastAPI)"]
+        direction TB
+        ui_intro["📝 Introspección"]
+        ui_inv["📦 Inventario"]
+        ui_alg["⚗️ Síntesis (Scroll)"]
+        ui_viz["🎨 Visualizador"]
+    end
+
+    User <-->|HTTP / HTMX| App
+    
+    ui_intro -->|append| f_csv
+    ui_inv <-->|CRUD| f_csv
+    ui_alg <-->|read/write| f_concepts
+    ui_alg -->|derive| f_csv
+    ui_viz <-->|read/write| f_viz
+    ui_viz -->|read concepts| f_concepts
+    ui_viz -->|derive items| f_csv
+
+    subgraph CLI["💻 CLI"]
+        cli_export["ikigai export"]
+    end
+    
+    cli_export -->|compile| f_csv & f_concepts & f_viz
+    cli_export -->|output| f_out[("Snapshot.html<br/>Autocontenido")]
+      </div>
+    </section>
+
+    <!-- 2 · CAPAS -->
+    <section id="capas">
+      <h2 class="text-2xl font-bold mb-4">2 · Arquitectura en Capas</h2>
+      <div class="mermaid">
+flowchart TB
+    subgraph L5["🖥️ Interfaces"]
+        cli["cli.py"]
+        server["server.py"]
+        routers["routers/*.py"]
+    end
+
+    subgraph L4["🎨 Presentación"]
+        templates["templates/server/"]
+        export["export.py"]
+        static["static/viz/"]
+    end
+
+    subgraph L3["🧠 Lógica"]
+        algebra["algebra.py<br/>(Set Engine)"]
+        auditor["auditor.py<br/>(Gaps & Drift)"]
+    end
+
+    subgraph L2["💾 Persistencia"]
+        csv_w["jsonl_store.py"]
+        viz_st["viz_storage.py"]
+        con_st["intersection_concepts.py"]
+    end
+
+    subgraph L1["📦 Modelos"]
+        models["models.py"]
+        viz_m["viz_models.py"]
+        cuad["cuadrantes.py"]
+    end
+
+    L5 --> L4 & L3 & L2
+    L4 --> L1
+    L3 --> L1
+    L2 --> L1
+      </div>
+    </section>
+
+    <!-- 3 · MODELO DE DATOS -->
+    <section id="datos">
+      <h2 class="text-2xl font-bold mb-4">3 · Modelo de Datos</h2>
+      <div class="mermaid">
+classDiagram
+    direction LR
+    class Item {
+        +str id
+        +str item
+        +str cuadrante
+        +dict tags
+        +assigned_circles() list
+    }
+    class Visualization {
+        +str name
+        +str title
+        +str[] categories
+        +str summary
+    }
+    class Concept {
+        +str key (1,2,3)
+        +str personal_name
+    }
+    class CuadrantePair {
+        +str titulo
+        +CuadranteSide pos
+        +CuadranteSide neg
+    }
+
+    Item "*" --o "1" CSV
+    Concept "*" --o "1" YAML
+    Visualization "1" --o "1" YAML
+      </div>
+    </section>
+
+    <!-- 💡 OBSERVACIONES -->
+    <section class="bg-amber-50 border-l-4 border-amber-400 p-6 rounded">
+      <h2 class="text-lg font-bold mb-2 text-amber-900">💡 Principios de Diseño</h2>
+      <ul class="text-sm space-y-2 text-amber-800 list-disc list-inside">
+        <li><strong>Sin redundancia:</strong> No se guardan listas de items en las regiones. Se derivan en tiempo real del CSV.</li>
+        <li><strong>Portabilidad:</strong> Todo el proyecto es un directorio movible. Sin bases de datos binarias.</li>
+        <li><strong>Escalabilidad Mental:</strong> El Álgebra Stepper reduce la carga cognitiva al dividir la síntesis en 4 niveles de dificultad.</li>
+        <li><strong>Accesibilidad:</strong> Tooltips nativos y ARIA labels en el Venn aseguran que la síntesis sea leíble por todos.</li>
+      </ul>
+    </section>
+
+    <footer class="text-center text-xs text-gray-500 pt-8 border-t">
+      Arquitectura validada · 390 tests verdes · v0.3.0
+    </footer>
+
+  </main>
+</body>
+</html>

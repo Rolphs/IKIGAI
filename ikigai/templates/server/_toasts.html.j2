@@ -1,0 +1,22 @@
+{#
+  _toasts.html.j2 — Contenedor para notificaciones flotantes (Toasts).
+  El JS inyectará elementos aquí dinámicamente.
+#}
+<div id="toast-container" 
+     class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"
+     aria-live="polite">
+  <!-- Los toasts se inyectan via window.showToast() -->
+</div>
+
+<template id="toast-template">
+  <div class="toast-item transform translate-y-10 opacity-0 transition-all duration-500 ease-out 
+              pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm border border-ink-50 bg-white/90 backdrop-blur-sm min-w-[140px]">
+    <span class="toast-icon text-xs"></span>
+    <div class="flex-1">
+      <p class="toast-msg text-[10px] font-bold uppercase tracking-widest text-ink-120"></p>
+    </div>
+    <button type="button" class="toast-close text-ink-80 hover:text-ink-120 text-xs leading-none
+            rounded-full w-4 h-4 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-brand-100"
+            aria-label="Cerrar notificación">&times;</button>
+  </div>
+</template>

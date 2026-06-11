@@ -1,0 +1,23 @@
+concepts:
+  # ─── Capa 0: primitivos (los 4 dominios) ──────────────────────────────
+  '1': lo-que-me-llena       # Amo
+  '2': lo-que-fluye          # Bueno
+  '3': lo-que-falta-al-mundo # Mundo
+  '4': lo-que-paga-cuentas   # Pago
+
+  # ─── Capa 1: pares (las 4 canonicas + 2 diagonales) ───────────────────
+  '1,2': pasion-domesticada       # Amo ∩ Bueno
+  '1,3': mision-personal          # Amo ∩ Mundo
+  '2,4': profesion-ejercida       # Bueno ∩ Pago
+  '3,4': trabajo-necesario        # Mundo ∩ Pago
+  '1,4': hobby-rentable           # Amo ∩ Pago (diagonal)
+  '2,3': talento-en-servicio      # Bueno ∩ Mundo (diagonal)
+
+  # ─── Capa 2: ternarias (los 4 casi-Ikigai) ────────────────────────────
+  '1,2,3': vocacion-sin-pago      # falta lo material
+  '1,2,4': aficion-profesional    # falta el proposito mayor
+  '1,3,4': causa-justa            # falta la maestria tecnica
+  '2,3,4': empleo-significativo   # falta la pasion personal
+
+  # ─── Capa 3: el centro ────────────────────────────────────────────────
+  '1,2,3,4': diseñar-claridad-para-otros

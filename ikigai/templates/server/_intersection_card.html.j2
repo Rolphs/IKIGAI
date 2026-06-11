@@ -1,0 +1,320 @@
+{# Card de un concepto del pipeline constructivo (capa 0, 1, 2 o 3).
+   Renderizada en /sintesis (lista de 15 segmentada por capas) y como respuesta
+   HTMX al guardar. id="card-{key|replace(',','-')}" permite hx-target en swaps.
+    OJO: la coma rompe los selectores CSS (se interpreta como separador), por
+    eso reemplazamos ',' por '-' SOLO en el DOM id/selector. La key real (1,2,3)
+    sigue siendo la canonica para el backend (hidden input name="key").
+
+   Anatomia depende de la capa:
+     CAPA 0 (primitivo): header + items del circulo + input personal.
+       Simple: este ES un atomo, no tiene sub-conceptos ni interseccion.
+     CAPA 1-2: header + ingredientes pre-sintetizados + materia prima cruda
+       por circulo + input personal + cohabitantes.
+     CAPA 3 (Ikigai): igual a 1-2 pero materia prima cruda va a disclosure
+       (ya hay demasiada informacion arriba).
+#}
+<article id="card-{{ c.key|replace(',', '-') }}"
+         {% if oob %}hx-swap-oob="true"{% endif %}
+         class="set-card p-4 flex flex-col gap-3 {{ 'card-secured' if c.is_secured else 'card-pending' }}"
+         data-key="{{ c.key }}"
+         {% if c.layer == 0 %}data-csv-value="{{ c.key }}"{% endif %}
+         data-layer="{{ c.layer }}"
+         data-secured="{{ 'true' if c.is_secured else 'false' }}">
+
+  {# ─── 1. Header ───
+       Cuando hay personal_name, ESE es el titulo (la palabra TUYA es la heroe).
+       El canonical_name baja a subtitulo contextual entre parentesis.
+       Sin personal_name, el canonical sirve de placeholder visible.
+       Esto evita la confusion en la que el usuario cree que el canonical
+       hardcoded ("Pasion", "Mision") es lo que el sistema le grabo. #}
+  <header class="border-b border-ink-50 pb-2">
+    <div class="flex items-start justify-between gap-2">
+      <h3 class="min-w-0 min-h-[3.1rem] text-xl font-bold leading-tight
+                 {% if c.personal_name %}text-brand-100{% else %}text-ink-160{% endif %}">
+        {% if c.layer == 3 %}⭐ {% elif c.layer == 0 %}{{ c.individual_circles[0].emoji }} {% endif -%}
+        {{ c.personal_name or c.canonical_name or c.label }}
+        {%- if c.personal_name and c.canonical_name %}
+          <span class="text-xs font-normal text-ink-100 italic">({{ c.canonical_name }})</span>
+        {% endif %}
+      </h3>
+      <span class="text-xs tabular-nums px-2 py-0.5 rounded-full whitespace-nowrap shrink-0
+                   {% if c.count > 0 %}bg-brand-100 text-white{% else %}bg-ink-10 text-ink-100{% endif %}">
+        {% if c.layer == 0 %}{{ c.count }} item{{ '' if c.count == 1 else 's' }}{% else %}{{ c.count }} cohabitante{{ '' if c.count == 1 else 's' }}{% endif %}
+      </span>
+    </div>
+    <p class="notation mt-1 {% if c.layer >= 2 %}text-[11px] font-normal text-ink-100{% else %}text-base font-semibold text-brand-100{% endif %}">
+      {{ c.set_notation }}
+    </p>
+    {% if c.layer > 0 %}
+      <p class="text-[11px] text-ink-100 mt-0.5">{{ c.label }}</p>
+    {% endif %}
+  </header>
+
+  {# ─── 2. Tagline canonico + warning (gris, contexto) ───
+       SIEMPRE se renderiza (aunque vacío) para que sea una banda fija del
+       subgrid: así todas las cards hermanas tienen el mismo nº de hijos
+       directos y sus bandas se alinean fila a fila. #}
+  <p class="text-[11px] text-ink-120 italic leading-relaxed">
+    {{ c.canonical_tagline }}
+    {% if c.canonical_warning %}
+      <br><span class="text-accent-140 not-italic">&#9888;&#65039; {{ c.canonical_warning }}</span>
+    {% endif %}
+  </p>
+
+  {# ─── 2.5. CAPA 0: pregunta primaria del circulo ("¿Que amas?") ───
+       El label "Amo" o "Mundo" solo no basta: el usuario necesita ver la
+       pregunta operativa que define el circulo. Y opcionalmente la version
+       evocativa (rica) para destrabar respuestas. Mismo lenguaje que usa
+       /inventario, asi el usuario reconoce el contexto. #}
+  {% if c.layer == 0 and c.primary_question %}
+    <div class="bg-success-100/5 border-l-4 border-success-110 rounded-r px-3 py-2 space-y-1">
+      <p class="text-base font-bold text-success-110">
+        ❓ {{ c.primary_question }}
+      </p>
+      {% if c.evocative_question %}
+        <details class="group">
+          <summary class="cursor-pointer select-none text-[11px] uppercase tracking-wider text-ink-120 hover:text-ink-160 font-semibold">
+            <span class="inline-block transition-transform group-open:rotate-90">▶</span>
+            ¿Necesitas otra forma de preguntartelo?
+          </summary>
+          <p class="mt-1 text-xs text-ink-120 italic leading-relaxed pl-3">
+            “{{ c.evocative_question }}”
+          </p>
+        </details>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ─── 3. CAPA 0: items del primitivo (su materia prima son los items crudos) ───
+       flex-1 hace que este bloque crezca para llenar la card hasta donde se
+       necesite, dejando el input alineado al fondo cuando las cards del grid
+       tienen alturas distintas (Amo con 4 items vs Mundo con 2). #}
+  {% if c.layer == 0 %}
+    <div class="band-fill bg-accent-10/30 border border-accent-100/30 rounded-lg p-2.5 space-y-1 flex-1 flex flex-col min-h-0">
+      <p class="text-[11px] font-bold uppercase tracking-wider text-accent-140">
+        🧬 Items que pertenecen a este círculo ({{ c.count }})
+        <span class="font-normal normal-case text-ink-120 italic">— inspira la síntesis</span>
+      </p>
+      {% if c.members %}
+        <ul class="space-y-0.5 flex-1 overflow-y-auto bg-white rounded p-2 border border-ink-50 max-h-64">
+          {% for item in c.members %}
+            <li class="set-item" data-item-id="{{ item.id }}">
+              <span class="item-id">{{ item.id }}</span>
+              <span class="item-text">{{ item.item }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-xs italic text-ink-100 py-1">
+          Aun sin items con este tag. Agrega uno aqui abajo o etiqueta en /inventario.
+        </p>
+      {% endif %}
+      {# Boton "+": agrega un item a ESTA lista sin salir de /sintesis. Crea el
+         item con cuadrante=key (auto-tag para positivos) y re-renderiza la card
+         (lista + contadores). El swap outerHTML deja el input nuevo vacio. #}
+      <form hx-post="{{ ikigai_url }}/sintesis/item/add"
+            hx-target="#card-{{ c.key|replace(',', '-') }}"
+            hx-swap="outerHTML"
+            class="flex gap-1.5 min-w-0 pt-1">
+        <input type="hidden" name="key" value="{{ c.key }}" />
+        <input type="text" name="item_text" maxlength="200" autocomplete="off"
+               placeholder="Agrega un item a esta lista..."
+               class="flex-1 min-w-0 px-2 py-1.5 text-xs border border-ink-50 rounded bg-white
+                      focus:outline-none focus:border-accent-140 focus:ring-2 focus:ring-accent-100 focus:ring-opacity-40" />
+        <button type="submit" aria-label="Agregar item a {{ c.canonical_name }}"
+                class="px-2.5 py-1.5 bg-accent-140 hover:bg-ink-160 text-white
+                       text-xs font-bold rounded transition-colors whitespace-nowrap shrink-0
+                       focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-accent-140">+ Item</button>
+      </form>
+    </div>
+  {% endif %}
+
+  {# ─── 4. CAPA 1+: ingredientes pre-sintetizados (la PROPAGACION) ───
+       flex-1 absorbe el espacio sobrante para que el input + boton alineen
+       al fondo aunque las cards del grid tengan distinto numero de ingredientes
+       (ej. capa 1 con 2 vs capa 2 con 6 ingredientes). #}
+  {% if c.ingredients_by_layer %}
+    <div class="band-fill bg-brand-100/5 border border-brand-100/20 rounded-lg p-2.5 space-y-2 flex-1">
+      <p class="text-[11px] font-bold uppercase tracking-wider text-brand-100">
+        🧪 Ingredientes ya sintetizados
+        <span class="font-normal normal-case text-ink-120 italic">— de capas anteriores</span>
+      </p>
+      {# Orden DESCENDENTE: los padres DIRECTOS (capa N-1, ya bautizados) van
+         primero y a opacidad plena; los cimientos (capas mas bajas, ej. los
+         primitivos) bajan y se atenuan. Asi la jerarquia constructiva se lee
+         de arriba (lo mas cercano a esta sintesis) hacia abajo (la base). #}
+      {% for layer, ingredients in c.ingredients_by_layer.items() | sort(reverse=true) %}
+        {% set is_direct = layer == (c.layer - 1) %}
+        {# Conteo: cuantos acunados vs total en esta capa, para indicador de progreso #}
+        {% set acunados = ingredients | selectattr('has_personal') | list | length %}
+        {% set total = ingredients | length %}
+        {% set all_done = acunados == total %}
+        {% set none_done = acunados == 0 %}
+        <div class="space-y-1 {% if not is_direct %}opacity-60{% endif %}">
+          <p class="text-[11px] font-semibold text-ink-160 flex items-center justify-between gap-2">
+            <span class="flex items-center gap-1.5">
+              {% if is_direct %}
+                <span class="uppercase tracking-wider text-brand-100">Componentes directos</span>
+              {% else %}
+                <span class="uppercase tracking-wider text-ink-100">Cimiento · Capa {{ layer }}</span>
+              {% endif %}
+              <span class="px-1.5 py-0.5 rounded-full text-[10px] tabular-nums
+                  {% if all_done %}bg-success-100 text-white{% elif none_done %}bg-accent-10 text-accent-140 border border-accent-100/40{% else %}bg-brand-100/20 text-brand-100{% endif %}">
+                {{ acunados }}/{{ total }} acuñado{{ '' if total == 1 else 's' }}
+                {% if all_done %} ✓{% elif none_done %} ⚠️{% endif %}
+              </span>
+            </span>
+          </p>
+          {% if none_done and c.layer > 1 %}
+            <p class="text-[10px] text-accent-140 italic leading-tight pl-1">
+              Sube a las cards de capa {{ layer }} y acuña tus palabras — enriquecerán esta síntesis.
+            </p>
+          {% endif %}
+          <ul class="space-y-1">
+            {% for ing in ingredients %}
+              <li class="flex items-baseline gap-2 text-sm bg-white rounded px-2 py-1 border
+                  {% if ing.has_personal %}border-brand-100/30{% else %}border-accent-100/30 border-dashed{% endif %}">
+                <span class="notation text-[10px] text-ink-100 whitespace-nowrap tabular-nums font-mono">
+                  {{ ing.set_notation }}
+                </span>
+                {% if ing.has_personal %}
+                  <span class="font-semibold text-brand-100 flex-1">{{ ing.personal_name }}</span>
+                  <span class="text-[10px] text-ink-100">({{ ing.canonical_name }})</span>
+                {% else %}
+                  <span class="text-ink-120 italic flex-1">{{ ing.canonical_name }}</span>
+                  <span class="text-[10px] text-accent-140 whitespace-nowrap font-semibold">❓ falta tu palabra</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ─── 5. CAPA 1-2: materia prima cruda — ELIMINADA inline (movida al final como
+       disclosure, ver bloque 8). Razon: el modelo constructivo es estricto:
+       capa N usa SOLO sintesis de capa N-1 como inspiracion. Mostrar items
+       crudos en capa 1 era "romper la pureza" — si los primitivos no estan
+       nombrados, la solucion correcta es ir a capa 0 a nombrarlos, no caer
+       de vuelta a items. El disclosure sigue ahi para el caso edge en que
+       de verdad necesites cotejar contra la materia prima. #}
+
+  {# ─── 6. Acto de alquimia: flecha "produce" + sintesis personal ───
+       UNA sola sintesis por nodo (capa 0 incluida): el input lee/escribe
+       personal_name via /sintesis/concept. Para agregar materia prima a un
+       primitivo, ver el boton "+ Item" en la caja de items de arriba. #}
+  <div class="space-y-1">
+    <p class="text-center text-[10px] uppercase tracking-widest text-ink-100 font-semibold">
+      ↓ y todo esto produce ↓
+    </p>
+    <form hx-post="{{ ikigai_url }}/sintesis/concept"
+          hx-target="#card-{{ c.key|replace(',', '-') }}"
+          hx-swap="outerHTML"
+          class="space-y-1">
+      <input type="hidden" name="key" value="{{ c.key }}" />
+      <label class="block text-[11px] font-bold uppercase tracking-wider text-brand-100">
+        ✏️ {% if c.layer == 3 %}Tu Ikigai
+            {% elif c.layer == 0 %}Tu síntesis personal de "{{ c.canonical_name }}"
+            {% else %}Tu nombre para esta síntesis
+            {% endif %}
+      </label>
+      <div class="flex gap-2 min-w-0">
+        <input type="text"
+               name="personal_name"
+               value="{{ c.personal_name }}"
+               maxlength="120"
+               placeholder="{% if c.layer == 0 %}Ej. la palabra que captura TU lectura de {{ c.canonical_name }}... (ej. comer, leer, sanar){% elif c.layer == 1 %}Ej. lo que une {% for ic in c.individual_circles %}{{ ic.label }}{% if not loop.last %} + {% endif %}{% endfor %}... (ej. libros de cocina = comer + leer){% elif c.layer == 2 %}Ej. la sintesis de las 3 alquimias previas...{% else %}Ej. tu razon de ser, el centro de todo...{% endif %}"
+               autocomplete="off"
+               class="flex-1 min-w-0 px-3 py-2 text-sm border border-ink-50 rounded-lg bg-white
+                      focus:outline-none focus:border-brand-100 focus:ring-2 focus:ring-brand-100 focus:ring-opacity-20" />
+        {# Boton de estado:
+           - Asegurado (synthesized + prereqs OK): tono plata metalico, texto "Asegurado ✓"
+             El gradient simula brillo metalico (plata/plomo). Sigue siendo clicable
+             para re-guardar/editar pero comunica visualmente "esto ya esta listo".
+           - Pendiente: azul brillante "Asegurar" — call-to-action #}
+        {% if c.is_secured %}
+          <button type="submit"
+                  title="Esta tarjeta esta asegurada. Click para re-guardar si editaste el nombre."
+                  class="px-2 py-2 text-xs font-bold rounded-lg transition-colors text-ink-160
+                         border border-ink-100 whitespace-nowrap shrink-0
+                         bg-gradient-to-b from-ink-5 via-white to-ink-50
+                         hover:from-ink-10 hover:to-ink-100
+                         focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-ink-100
+                         shadow-inner">
+            ✓ Asegurado
+          </button>
+        {% else %}
+          <button type="submit"
+                  class="px-3 py-2 bg-brand-100 hover:bg-brand-110 active:bg-brand-130 text-white
+                         text-sm font-bold rounded-lg transition-colors whitespace-nowrap shrink-0
+                         focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-brand-100">
+            Asegurar
+          </button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  {# ─── 7. CAPA 1+: cohabitantes (items con TODOS los tags) ───
+       Skipped en capa 0 porque seria redundante: los items del primitivo YA
+       son sus "cohabitantes" trivialmente (basta 1 tag para pertenecer). #}
+  {% if c.layer > 0 %}
+    <div class="space-y-1">
+      <p class="text-[11px] font-bold uppercase tracking-wider text-ink-120">
+        📌 Cohabitantes ({{ c.count }})
+        <span class="font-normal normal-case italic text-ink-100">— items con todos estos tags asignados</span>
+      </p>
+      {% if c.members %}
+        <ul class="space-y-0.5">
+          {% for item in c.members %}
+            <li class="set-item" data-item-id="{{ item.id }}">
+              <span class="item-id">{{ item.id }}</span>
+              <span class="item-text">{{ item.item }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-xs italic text-ink-100 py-1">
+          Aun sin items que crucen estos {{ c.circles_sorted | length }} tags simultaneamente.
+          {% if c.layer < 3 %}La materia prima arriba ↑ te da las piezas para nombrar la sintesis aunque ningun item las cruce todavia.{% endif %}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ─── 8. CAPAS 1-3: materia prima cruda en disclosure (escape hatch) ───
+       Por defecto colapsada. El usuario llega aqui solo si REALMENTE necesita
+       cotejar contra los items que dieron origen a sus sintesis previas. El
+       flujo principal es: capa N usa nombres de capa N-1, listo. #}
+  {% if c.layer >= 1 %}
+    <details class="group border-t border-ink-50 pt-2 -mx-1 px-1">
+      <summary class="cursor-pointer select-none flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-120 hover:text-ink-160">
+        <span class="inline-block transition-transform group-open:rotate-90">▶</span>
+        <span>Ver materia prima cruda — items de los {{ c.individual_circles | length }} círculo{{ '' if c.individual_circles | length == 1 else 's' }}</span>
+      </summary>
+      <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 {% if c.layer == 3 %}lg:grid-cols-4{% elif c.layer == 2 %}lg:grid-cols-3{% endif %}">
+        {% for ic in c.individual_circles %}
+          <div class="bg-ink-5 rounded-lg p-2 space-y-1">
+            <p class="text-[11px] font-semibold text-ink-120 flex items-baseline justify-between">
+              <span>{{ ic.emoji }} {{ ic.label }}</span>
+              <span class="tabular-nums text-ink-100">{{ ic.count }}</span>
+            </p>
+            {% if ic.members %}
+              <ul class="space-y-0.5 max-h-40 overflow-y-auto">
+                {% for item in ic.members %}
+                  <li class="set-item" data-item-id="{{ item.id }}">
+                    <span class="item-id">{{ item.id }}</span>
+                    <span class="item-text">{{ item.item }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-[11px] italic text-ink-100">vacio</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+  {% endif %}
+</article>

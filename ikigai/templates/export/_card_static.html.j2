@@ -1,0 +1,87 @@
+{# ============================================================
+   CARD ESTATICA para el snapshot exportado.
+   ============================================================
+   - Sin <form>, sin botones, sin HTMX, sin inputs.
+   - El "personal_name" es el heroe visual cuando existe.
+   - Sin personal_name: queda como placeholder grayed-out con
+     etiqueta "no acuñado" — ayuda a leer que falta.
+   - Sin items list (eso vive en la seccion "Lo que sembraste").
+   - Los ingredientes (capa 1+) si se muestran, con su nombre personal,
+     para que se lea la cadena causal.
+============================================================ #}
+<article class="rounded-xl p-4 flex flex-col gap-2
+                {% if c.layer == 3 %}ikigai-trophy
+                {% elif c.is_secured %}card-secured
+                {% else %}card-pending{% endif %}"
+         data-layer="{{ c.layer }}"
+         data-secured="{{ 'true' if c.is_secured else 'false' }}">
+
+  {# Header: nombre personal grande (o canonico como placeholder), notacion al lado #}
+  <header class="border-b border-ink-50 pb-2">
+    <div class="flex items-baseline justify-between gap-2 flex-wrap">
+      <h3 class="text-lg font-bold leading-tight
+                 {% if c.personal_name %}text-brand-100{% else %}text-ink-100{% endif %}">
+        {% if c.layer == 3 %}⭐ {% endif -%}
+        {{ c.personal_name or c.canonical_name or c.label }}
+        {%- if c.personal_name and c.canonical_name %}
+          <span class="text-xs font-normal text-ink-100 italic">({{ c.canonical_name }})</span>
+        {% endif %}
+      </h3>
+      {% if not c.personal_name %}
+        <span class="text-[10px] uppercase tracking-wider text-accent-140 font-semibold whitespace-nowrap">
+          ⚠ sin acuñar
+        </span>
+      {% endif %}
+    </div>
+    <p class="notation text-sm font-semibold text-brand-100 mt-1">
+      {{ c.set_notation }}
+    </p>
+    {% if c.layer > 0 %}
+      <p class="text-[11px] text-ink-100 mt-0.5">{{ c.label }}</p>
+    {% endif %}
+  </header>
+
+  {# Tagline canonico: un toque de contexto narrativo #}
+  {% if c.canonical_tagline %}
+    <p class="text-xs text-ink-120 italic leading-relaxed">
+      {{ c.canonical_tagline }}
+    </p>
+  {% endif %}
+
+  {# Cadena causal para capas 1+: muestra los ingredientes con su nombre personal.
+     Asi se lee "esta sintesis viene de X + Y" sin tener que ir a buscar las cards
+     padre. La narrativa fluye en una sola lectura. #}
+  {% if c.ingredients_by_layer %}
+    <div class="bg-brand-100/5 rounded-lg p-2 space-y-1.5">
+      <p class="text-[10px] uppercase tracking-wider text-brand-100 font-semibold">
+        🔗 sintesis de:
+      </p>
+      {% for layer, ingredients in c.ingredients_by_layer.items() %}
+        <ul class="space-y-1 text-xs">
+          {% for ing in ingredients %}
+            <li class="flex items-baseline gap-2 bg-white rounded px-2 py-1
+                       {% if ing.has_personal %}border border-brand-100/20{% else %}border border-dashed border-accent-100/40{% endif %}">
+              <span class="notation text-[10px] text-ink-100 whitespace-nowrap font-mono">
+                {{ ing.set_notation }}
+              </span>
+              {% if ing.has_personal %}
+                <span class="font-semibold text-brand-100 flex-1">{{ ing.personal_name }}</span>
+                <span class="text-[10px] text-ink-100">({{ ing.canonical_name }})</span>
+              {% else %}
+                <span class="text-ink-100 italic flex-1">{{ ing.canonical_name }}</span>
+                <span class="text-[10px] text-accent-140 font-semibold whitespace-nowrap">⚠ sin acuñar</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Capa 0: cuenta de items, sin listarlos (se listan abajo en su propia seccion) #}
+  {% if c.layer == 0 %}
+    <p class="text-[11px] text-ink-120 italic">
+      📜 {{ c.count }} item{{ '' if c.count == 1 else 's' }} en este círculo
+    </p>
+  {% endif %}
+</article>

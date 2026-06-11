@@ -1,0 +1,207 @@
+{#
+  _sintesis_styles.html.j2 - Estilos del laboratorio.
+
+  La pagina es un scroll dramaturgico vertical: una sola pagina con jerarquia
+  visual fuerte por capa. Cards conservan estados (pending/secured). Encima:
+    - layer-rail: mini-nav vertical sticky con dots por capa
+    - layer-header: cabecera con titulo + descripcion + progreso por capa
+    - layer-divider: separador visual entre capas (línea + ícono)
+    - propósito: variante centrada y con más peso visual (capa 3, layer-final)
+
+  WCAG 2.2 AA: contrast 4.5:1 en texto, focus-visible en nav, respeta
+  prefers-reduced-motion (sin smooth-scroll si el usuario lo pidió).
+#}
+<style>
+  /* ─── Notación matemática (no cambia) ─── */
+  .notation { font-family: "Cambria Math", Georgia, serif; }
+  .csub { font-size: 0.7em; vertical-align: sub; }
+
+  /* ─── Cards de conjuntos (base, no cambia) ─── */
+  .set-card {
+    display: flex; flex-direction: column;
+    border-radius: 12px;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .set-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+
+  /* ─── Alineación entre cards hermanas: SUBGRID ───
+     Problema viejo: cada card era un flex-column independiente, cada banda
+     crecía a su altura natural y nada se alineaba entre cards (el header de
+     "Desarrollar universos" empujaba todo lo de abajo distinto que "Pago").
+     Fix: el grid padre (.sint-grid) define los tracks de fila y CADA card los
+     comparte vía subgrid → header, notación, items, etc. caen en la MISMA
+     fila en todas las cards. --card-bands = nº de hijos directos de la card en
+     esa capa (se setea inline por grid porque difiere: positivos 5, sombras 4,
+     intersecciones 6). Degrada con gracia: sin subgrid, las cards siguen como
+     flex-column (solo sin alineación perfecta entre bandas).
+     Soporte: Chrome 117+, Firefox 71+, Safari 16+. */
+  .sint-grid { column-gap: 2rem; row-gap: 0.75rem; }
+  @supports (grid-template-rows: subgrid) {
+    .sint-grid > .set-card {
+      display: grid;
+      grid-template-rows: subgrid;
+      /* Una sola columna que SE DEJA encoger (minmax 0): sin esto, el
+         min-width:auto de los grid-items hace que el contenido ancho
+         (pills, badges) desborde la card y rompa el ancho de columna. */
+      grid-template-columns: minmax(0, 1fr);
+      grid-row: span var(--card-bands, 5);
+      row-gap: 0.75rem;
+    }
+    /* Las bandas se alinean por su LÍNEA SUPERIOR (start), no estiradas: el
+       texto del header queda pegado a su borde inferior, y las cajas no se
+       inflan con espacio fantasma. El crecimiento para igualar alturas lo
+       absorbe el track de fila, no el contenido. */
+    .sint-grid > .set-card > * { align-self: start; }
+    /* Excepción: las cajas de materia prima (items/ingredientes) SÍ estiran
+       para llenar su banda — así todas las cajas se ven del mismo alto. */
+    .sint-grid > .set-card > .band-fill { align-self: stretch; }
+  }
+
+  /* Estados de alquimia (Paja vs Blanco) — no cambian */
+  .card-pending {
+    background-color: #fff8ec; /* accent-10 */
+    border: 2px solid rgba(255, 194, 32, 0.6); /* accent-100/60 */
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  }
+  .card-secured {
+    background-color: white;
+    border: 2px solid #74767c; /* ink-100 */
+  }
+
+  /* Items dentro de la card */
+  .set-item {
+    font-size: 11.5px; line-height: 1.35;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f7f7f7;
+    border: 1px solid transparent;
+    display: flex; gap: 6px; align-items: flex-start;
+  }
+
+  /* ═══════════════════ NUEVO: scroll dramatúrgico ═══════════════════ */
+
+  /* Mini-nav vertical sticky a la izquierda — "te ubica sin gritarte" */
+  .layer-rail {
+    position: fixed;
+    left: max(12px, calc((100vw - 1280px) / 2 - 56px));
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 16px 10px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid #cfd3d6;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+  @media (max-width: 1024px) { .layer-rail { display: none; } }
+
+  .layer-rail-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #cfd3d6;
+    border: 2px solid transparent;
+    transition: all 200ms ease;
+    position: relative;
+    cursor: pointer;
+  }
+  .layer-rail-dot:hover { transform: scale(1.25); background: #74767c; }
+  .layer-rail-dot.active {
+    background: #d81b76;
+    border-color: #fdeef6;
+    transform: scale(1.35);
+    box-shadow: 0 0 0 3px rgba(0, 83, 226, 0.25);
+  }
+  .layer-rail-dot:focus-visible {
+    outline: 2px solid #d81b76;
+    outline-offset: 4px;
+  }
+  /* Tooltip al lado del dot */
+  .layer-rail-dot::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 24px; top: 50%;
+    transform: translateY(-50%);
+    background: #1d1d1d;
+    color: white;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms;
+  }
+  /* El letrero NO se muestra siempre: solo en hover o foco de teclado.
+     La zona actual se indica con el estilo del dot .active (no con el letrero
+     permanente, que tapaba las cards). focus-visible mantiene accesibilidad. */
+  .layer-rail-dot:hover::after,
+  .layer-rail-dot:focus-visible::after { opacity: 1; }
+
+  /* Layer header — cabecera de cada capa, ancla del scroll */
+  .layer-anchor {
+    /* Compensa el sticky top (~64px) al hacer scroll programático */
+    scroll-margin-top: 80px;
+  }
+
+  /* Separador visual entre capas — línea vertical fina + ícono central */
+  .layer-divider {
+    display: flex; align-items: center; justify-content: center;
+    margin: 56px 0;
+    position: relative;
+  }
+  .layer-divider::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: -28px; bottom: -28px;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, #cfd3d6, transparent);
+  }
+  .layer-divider-icon {
+    background: #f7f7f7;
+    border: 1px solid #cfd3d6;
+    border-radius: 999px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    position: relative; z-index: 1;
+  }
+
+  /* Capa final (Propósito) — centrada, con halo */
+  .layer-final {
+    text-align: center;
+    padding: 48px 16px;
+    background: radial-gradient(ellipse at center, rgba(255, 194, 32, 0.08), transparent 70%);
+    border-radius: 24px;
+  }
+
+  /* Badge de progreso por capa */
+  .layer-progress {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #f7f7f7;
+    border: 1px solid #cfd3d6;
+    font-size: 10px; font-weight: 700;
+    color: #5b5e64;
+    font-variant-numeric: tabular-nums;
+  }
+  .layer-progress.complete {
+    background: #effdf3;
+    border-color: #16a34a;
+    color: #16a34a;
+  }
+  .layer-progress-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #cfd3d6;
+  }
+  .layer-progress.complete .layer-progress-dot { background: #16a34a; }
+
+  /* Respeto a prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    .set-card, .layer-rail-dot { transition: none; }
+    html { scroll-behavior: auto !important; }
+  }
+</style>

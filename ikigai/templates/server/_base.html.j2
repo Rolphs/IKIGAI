@@ -1,0 +1,112 @@
+{#
+  ═══════════════════════════════════════════════════════════════════════
+  _base.html.j2 — Chrome compartida de todas las paginas server-side.
+  ═══════════════════════════════════════════════════════════════════════
+
+  Single source of truth para:
+    - <!doctype>, <head>, body wrapper
+    - CDNs (Tailwind + HTMX)
+    - Colores del proyecto (superset que cubre todos los usos)
+    - Header sticky con nav-toggle + slots para titulo y acciones
+
+  CADA pagina debe `{% extends "_base.html.j2" %}` y al menos:
+    - `{% set active_section = 'intro' | 'sint' | 'viz' | 'inv' %}`
+      (al inicio del archivo, fuera de bloques: el include de
+      _nav_toggle lo lee como variable de contexto)
+    - `{% block title %}` y `{% block main %}` con su contenido.
+
+  BLOQUES disponibles (todos opcionales menos los marcados con *):
+
+    title*           El <title> de la pestaña del browser
+    extra_head       Estilos page-specific, CSS extra, libs
+    body_class       Clases adicionales para el <body> (concat al default)
+    page_title       Texto del <h1> centrado en el chrome (una sola linea)
+    header_right     Indicador chico del lado derecho (status, max 1-2 items)
+    before_main      Entre </header> y <main>; util para nav fijos
+                     (e.g. layer-rail de sintesis)
+    main*            El contenido principal; cada pagina controla su max-w.
+                     Si necesitas sticky toolbars (selectores, progress
+                     bars page-specific), van AQUI con `sticky top-14`,
+                     NO en el chrome.
+    after_main       Entre </main> y footer/toasts/scripts; util para
+                     paneles fijos (e.g. region-editor del visualizador)
+    footer           Footer opcional; default vacio
+    toasts           Contenedor de toasts (default: incluye _toasts.html.j2;
+                     inventario lo override con su propio undo-toast)
+    body_scripts     Scripts page-specific al final del <body>
+
+  REGLA: NO agregues nada al chrome que no sea texto plano del titulo o
+  un indicador chico (1-2 palabras). Progress bars, botones, selectores,
+  etc. van adentro de `main` como sticky toolbars. Esto preserva la
+  congruencia visual de la chrome entre paginas.
+#}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}ikigai {% endblock %}</title>
+  {# Tailwind + HTMX vendorizados localmente (algunas redes corporativas bloquean los
+     CDNs externos: cdn.tailwindcss.com y unpkg dan 407 proxy). El CSS se
+     buildea con el CLI standalone via tailwind.config.js; ver README. #}
+  <link rel="stylesheet" href="/static/tailwind.css" />
+  <script src="/static/htmx.min.js"></script>
+  <script>
+    // URL prefix global para todos los fetches JS de esta pagina.
+    // Las paginas viven bajo /u/{name}/..., asi que cada fetch a un endpoint
+    // del ikigai (e.g. /inventario/item) debe ir a /u/{name}/inventario/item.
+    // Las paginas pre-fetching se usan: `${window.IKIGAI_URL}/inventario/item`.
+    window.IKIGAI_URL = {{ ikigai_url | tojson }};
+  </script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-ink-5 text-ink-160 font-sans min-h-screen flex flex-col{% block body_class %}{% endblock %}">
+
+  {#
+    ═══════ CHROME HEADER: IDENTICO en TODAS las paginas ═══════
+    Una sola fila de altura fija (h-14 = 56px). Tres slots:
+      - LEFT:    nav-toggle (siempre)
+      - CENTER:  <h1> con el titulo de la pagina (text-sm, una linea)
+      - RIGHT:   indicador opcional (status chico, max 1-2 elementos)
+
+    NADA mas vive aqui. Progress bars, selectores, botones de accion,
+    sub-bars, etc. son responsabilidad de cada pagina y van dentro de
+    `{% block main %}` (con sticky top-14 si necesitan stickiness).
+
+    Esta restriccion es INTENCIONAL: garantiza que el nav-toggle, el
+    titulo y el borde inferior del chrome esten en la MISMA coordenada
+    (Y=0 al 56) en las 4 paginas, sin importar cuanto contenido haya
+    abajo. Cualquier cosa que ponga el header en "forma irregular"
+    rompe la congruencia visual y debe vivir mas abajo.
+  #}
+  <header class="bg-white border-b border-ink-50 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
+      {# Workspace switcher: muestra el ikigai actual + dropdown con los demas. #}
+      {% if ikigai_name %}
+        {% include "_ikigai_switcher.html.j2" %}
+        <div class="h-6 w-px bg-ink-50" aria-hidden="true"></div>
+      {% endif %}
+      {% include "_nav_toggle.html.j2" %}
+      <h1 class="flex-1 text-center text-sm font-bold text-ink-160 truncate min-w-0">
+        {% block page_title %}ikigai 🌷{% endblock %}
+      </h1>
+      <div class="flex items-center gap-2 text-xs text-ink-100 whitespace-nowrap">
+        {% block header_right %}{% endblock %}
+      </div>
+    </div>
+  </header>
+
+  {% block before_main %}{% endblock %}
+
+  {% block main %}{% endblock %}
+
+  {% block after_main %}{% endblock %}
+
+  {% block footer %}{% endblock %}
+
+  {% block toasts %}{% include "_toasts.html.j2" %}{% endblock %}
+
+  {% block body_scripts %}{% endblock %}
+
+</body>
+</html>

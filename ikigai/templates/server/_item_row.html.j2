@@ -1,0 +1,19 @@
+﻿{# Fragmento renderizado al agregar un item (HTMX hx-swap=beforeend) #}
+{# data-* attributes para que el undo-stack del inventario pueda reinsertar #}
+<li class="htmx-added flex items-start gap-2 group bg-ink-5 border border-ink-50 rounded px-3 py-2 text-sm"
+    id="item-{{ item.id }}"
+    data-item-id="{{ item.id }}"
+    data-cuadrante="{{ item.cuadrante }}"
+    data-item-text="{{ item.item }}">
+  <span class="font-mono text-xs text-ink-120 mt-0.5 shrink-0">{{ item.id }}</span>
+  <span class="item-text flex-1 text-ink-160 cursor-text" title="Doble-click para editar">{{ item.item }}</span>
+  <button type="button"
+          hx-delete="{{ ikigai_url }}/inventario/item/{{ item.id }}"
+          hx-target="closest li"
+          hx-swap="outerHTML"
+          aria-label="Borrar item (Ctrl+Z para deshacer)"
+          title="Borrar (Ctrl+Z deshace)"
+          class="chip-delete-inv opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition shrink-0">
+    ✕
+  </button>
+</li>

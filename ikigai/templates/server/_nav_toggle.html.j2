@@ -1,0 +1,80 @@
+{#
+  Toggle Introspección ↔ Álgebra ↔ Visualizador.
+
+  1. Introspección: Vacuado de mente, captura rápida.
+  2. Álgebra: Síntesis y naming (corazón del proceso).
+  3. Visualizador: El resultado final.
+  (Inventario se oculta, ahora es un área de servicio interna).
+
+  Uso: {% set active_section = 'intro' | 'sint' | 'viz' %} {% include "_nav_toggle.html.j2" %}
+#}
+<style>
+  .nav-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;             /* todos los <a> alto consistente */
+    background: #f0f0f0;              /* ink-10 */
+    border-radius: 9999px;
+    padding: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    user-select: none;
+    /* CSS vars que JS actualizará. Defaults: pill invisible hasta que JS corra. */
+    --pill-x: 4px;
+    --pill-w: 0px;
+  }
+  .nav-toggle a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+    padding: 8px 16px;                /* un poco menos de padding para 4 items */
+    line-height: 1.15;
+    border-radius: 9999px;
+    color: #6b7280;                   /* ink-100 */
+    transition: color 200ms;
+    white-space: nowrap;              /* nunca partir el label */
+    text-align: center;
+  }
+  .nav-toggle a[aria-selected="true"] {
+    color: #d81b76;                  /* brand-100 */
+    font-weight: 600;
+  }
+  .nav-toggle a:hover { color: #2e2f33; }   /* ink-160 */
+  .nav-toggle-pill {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: var(--pill-w);
+    transform: translateX(var(--pill-x));
+    background: white;
+    border-radius: 9999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+                width     220ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+    pointer-events: none;
+  }
+</style>
+<nav class="nav-toggle"
+     data-active="{{ active_section }}"
+     role="tablist"
+     aria-label="Cambiar entre secciones">
+  <span class="nav-toggle-pill" aria-hidden="true"></span>
+  <a href="{{ ikigai_url }}/introspeccion" data-section="intro" role="tab"
+     aria-selected="{{ 'true' if active_section in ['intro', 'inv'] else 'false' }}">
+    🧘 Introspección
+  </a>
+  <a href="{{ ikigai_url }}/sintesis" data-section="sint" role="tab"
+     aria-selected="{{ 'true' if active_section == 'sint' else 'false' }}">
+    ∑ Síntesis
+  </a>
+  <a href="{{ ikigai_url }}/visualizador" data-section="viz" role="tab"
+     aria-selected="{{ 'true' if active_section == 'viz' else 'false' }}">
+    📊 Visualizador
+  </a>
+</nav>

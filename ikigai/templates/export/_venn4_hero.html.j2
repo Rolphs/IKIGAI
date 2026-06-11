@@ -1,0 +1,27 @@
+{# ============================================================
+   VENN DE 4 ELIPSES — HERO DEL SNAPSHOT (wrapper)
+   ============================================================
+   Solo el chrome (figure + caption + leyenda). El SVG vive en
+   _venn4_svg.html.j2 (fuente unica, compartida con el .svg descargable).
+============================================================ #}
+<figure class="bg-white rounded-2xl border border-ink-50 p-4 md:p-6 shadow-sm">
+  <figcaption class="text-center mb-3">
+    <h2 class="text-base font-bold text-ink-160">El Ikigai a 4 circulos</h2>
+    <p class="text-xs text-ink-120 italic">
+      Configuracion Edwards (1989): 4 elipses inclinadas a &plusmn;45&deg; que generan las 15 regiones.
+      Cada region apunta con una linea a <span class="font-semibold text-brand-100">tu palabra</span>
+      completa (azul si la acu&ntilde;aste, gris si es el nombre can&oacute;nico).
+    </p>
+  </figcaption>
+
+  {% include "_venn4_svg.html.j2" %}
+
+  <div class="mt-3 flex justify-center gap-6 text-[11px] text-ink-120">
+    <span class="flex items-center gap-1">
+      <span class="font-bold text-brand-100">aaa</span> tu palabra acu&ntilde;ada
+    </span>
+    <span class="flex items-center gap-1">
+      <span class="italic text-ink-100">aaa</span> nombre can&oacute;nico (sin acu&ntilde;ar)
+    </span>
+  </div>
+</figure>

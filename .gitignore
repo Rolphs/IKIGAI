@@ -1,0 +1,63 @@
+# Build / package
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Env / IDE
+.venv/
+venv/
+.env
+.vscode/
+.idea/
+
+# Test / type artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Reportes generados (no commitear outputs personales)
+**/output/
+**/_generated/
+
+# Workspace de runtime local (copia de ikigai/_demo_data/ — DRY: no duplicar en git)
+_live_demo/
+
+# Workspaces scratch/efimeros creados con `ikigai init` para pruebas
+# (contienen reflexiones personales — NO commitear)
+_scratch/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime logs
+*.log
+
+# Tailwind CLI standalone (~46MB, platform-specific). Lo baja scripts/build_css.py.
+# El binario es _tw_cli (mac/linux) o _tw_cli.exe (windows). El CSS buildeado
+# (ikigai/static/tailwind.css) SI se commitea, el binario NO.
+_tw_cli
+_tw_cli.exe
+
+# Workspaces de runtime creados con `ikigai init` (contienen ikigais; NO
+# versionar). El demo se nombra `mi-ikigai` en los docs; ignoramos ese y los
+# scratch comunes. Idealmente crea tus workspaces FUERA del repo.
+mi-ikigai/
+
+# Scratch / probes temporales (prefijo _ en la raiz)
+/_*.py
+
+# Dumps temporales
+tulipan_dump.txt
+
+# SQLite local (derivado de tulipan.csv via scripts/migrate_to_sqlite.py)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

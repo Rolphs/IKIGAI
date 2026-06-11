@@ -1,0 +1,76 @@
+{#
+  Mini-strip de "resultado real" para una seccion del cuestionario.
+
+  Renderiza la columna OBSERVADA de la tabla chi2 8x4 para esa pregunta:
+  cuantos items respondidos terminaron en cada uno de los 4 circulos
+  (via tag_amo/bueno/mundo/pago). Si la pregunta es positiva y NINGUN item
+  tagueo el circulo esperado, muestra warning de divergencia.
+
+  Contexto requerido:
+    fingerprint     -> dict producido por stats.section_fingerprint()
+    side            -> dict con keys csv_value, emoji
+    circle_labels   -> CIRCLE_LABELS
+    circle_emojis   -> CIRCLE_EMOJIS
+    circle_bar_bg   -> CIRCLE_BAR_BG
+#}
+{% set fp = fingerprint %}
+{% set total = fp.tagged_items_count %}
+{% set is_shadow = side.csv_value.endswith('b') %}
+<div class="result-strip border border-ink-50 rounded-xl bg-ink-5/40 p-3 mt-2 mb-1 text-[11px]">
+  <div class="flex items-center justify-between mb-2">
+    <span class="font-bold uppercase tracking-wider text-ink-120 text-[10px]">
+      📊 Resultado real
+    </span>
+    <span class="text-ink-100 text-[10px] tabular-nums">
+      {{ total }} item{% if total != 1 %}s{% endif %} con tags
+    </span>
+  </div>
+
+  {% if total == 0 and not is_shadow %}
+    <p class="text-ink-100 italic text-[10px]">
+      Aún ningún item taguea círculos. Pasá por
+      <a href="{{ ikigai_url }}/inventario" class="text-brand-100 underline">inventario</a>
+      a clasificarlos.
+    </p>
+  {% elif is_shadow %}
+    <p class="text-ink-100 italic text-[10px]">
+      Sombra · no se espera tag (los items de complemento se filtran por la pregunta evocadora).
+    </p>
+  {% else %}
+    {# 4 barritas + % por circulo #}
+    <div class="grid grid-cols-4 gap-2">
+      {% for circle in circles %}
+        {% set pct = fp.distribution_pct[circle] %}
+        {% set count = fp.distribution_count[circle] %}
+        {% set is_expected = (fp.expected_circle == circle) %}
+        <div class="flex flex-col items-center gap-1">
+          <div class="flex items-center gap-0.5 text-[10px]">
+            <span>{{ circle_emojis[circle] }}</span>
+            {% if is_expected %}
+              <span class="text-success-100 font-bold" title="Círculo esperado">✓</span>
+            {% endif %}
+          </div>
+          <div class="w-full h-1.5 bg-ink-10 rounded-full overflow-hidden">
+            <div class="h-full {{ circle_bar_bg[circle] }} transition-all duration-500"
+                 style="width: {{ '%.0f' % pct }}%"></div>
+          </div>
+          <span class="text-[10px] text-ink-120 tabular-nums">
+            {{ count }} · {{ '%.0f' % pct }}%
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if fp.has_divergence %}
+      <div class="mt-2 flex items-start gap-1 text-[10px] text-accent-140 bg-accent-10 rounded-md px-2 py-1.5">
+        <span>⚠️</span>
+        <span>
+          La pregunta evoca <b>{{ circle_emojis[fp.expected_circle] }}
+          {{ circle_labels[fp.expected_circle] }}</b>,
+          pero ningún item tagueó ese círculo. Revisá si la pregunta te
+          llevó a respuestas de otro dominio.
+        </span>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>

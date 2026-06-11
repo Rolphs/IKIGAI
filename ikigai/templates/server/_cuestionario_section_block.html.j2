@@ -1,0 +1,103 @@
+{#
+  Bloque retrospectivo de una seccion del cuestionario.
+
+  Renderiza, en orden:
+    1) Burbuja del bot con la pregunta evocadora
+    2) Las pills con los items ya respondidos en sesiones previas
+    3) Un form inline propio para agregar nuevas reflexiones
+    4) El strip de "resultado real" (distribucion + divergencia)
+
+  Se renderiza SIEMPRE uno por cada una de las 8 preguntas (con o sin
+  items previos). No hay cursor global: cada pregunta es autonoma y
+  acepta reflexiones via su propio form inline.
+
+  Contexto requerido:
+    section         -> dict con index, pair, side, responses, fingerprint
+    circles         -> CIRCLES
+    circle_labels   -> CIRCLE_LABELS
+    circle_emojis   -> CIRCLE_EMOJIS
+    circle_bar_bg   -> CIRCLE_BAR_BG
+#}
+<div class="cuestionario-section-block space-y-3"
+     data-section-csv="{{ section.side.csv_value }}"
+     data-section-index="{{ section.index }}">
+
+  {# Pregunta del bot #}
+  <div class="chat-bubble-bot">
+    <p class="text-sm leading-relaxed">
+      <b>{{ section.side.emoji }} {{ section.pair.titulo }}:</b>
+      {{ section.side.pregunta_evocativa }}
+    </p>
+  </div>
+
+  {# Pills de items respondidos previamente. Mismo HTML que
+     _cuestionario_answer_pill.html.j2 para coherencia visual y para que
+     el delete (HTMX) funcione igual. #}
+  <div class="pills-container flex flex-col items-end gap-2"
+       id="pills-{{ section.side.csv_value }}">
+    {% for it in section.responses %}
+      <div class="intro-answer-pill chat-bubble-user group relative"
+           data-item-id="{{ it.id }}">
+        <div class="flex flex-col gap-1">
+          <span class="text-sm pr-4">{{ it.item }}</span>
+          <div class="flex flex-wrap gap-1 text-[9px] opacity-80">
+            {% if it.tag_amo %}<span class="bg-white/20 px-1.5 py-0.5 rounded">❤️ Amo</span>{% endif %}
+            {% if it.tag_bueno %}<span class="bg-white/20 px-1.5 py-0.5 rounded">💪 Bueno</span>{% endif %}
+            {% if it.tag_mundo %}<span class="bg-white/20 px-1.5 py-0.5 rounded">🌍 Mundo</span>{% endif %}
+            {% if it.tag_pago %}<span class="bg-white/20 px-1.5 py-0.5 rounded">💵 Pago</span>{% endif %}
+            {% if not (it.tag_amo or it.tag_bueno or it.tag_mundo or it.tag_pago) %}
+              <span class="bg-white/20 px-1.5 py-0.5 rounded italic opacity-60">Sombra</span>
+            {% endif %}
+          </div>
+        </div>
+        <button type="button"
+                hx-delete="{{ ikigai_url }}/inventario/item/{{ it.id }}"
+                hx-target="closest .intro-answer-pill"
+                hx-swap="outerHTML"
+                hx-confirm="¿Eliminar esta reflexión?"
+                class="absolute -right-2 -top-2 w-5 h-5 bg-danger-100 text-white rounded-full
+                       opacity-0 group-hover:opacity-100 transition-opacity duration-200
+                       flex items-center justify-center text-[10px] shadow-sm
+                       hover:scale-110 active:scale-90 focus:outline-none"
+                title="Borrar respuesta">
+          ✕
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# Form inline: cada pregunta tiene su PROPIO campo para agregar una
+     reflexion. Apunta a su pills-container; sin cursor global compartido.
+     El handler onSectionAnswer limpia el textarea y refresca el strip. #}
+  <form class="section-answer-form flex gap-2 items-end"
+        data-section-csv="{{ section.side.csv_value }}"
+        hx-post="{{ ikigai_url }}/inventario/item"
+        hx-target="#pills-{{ section.side.csv_value }}"
+        hx-swap="beforeend"
+        hx-on::after-request="onSectionAnswer(this, event)">
+    <input type="hidden" name="cuadrante" value="{{ section.side.csv_value }}">
+    <input type="hidden" name="response_fragment" value="introspeccion">
+    <input type="hidden" name="source" value="chat-coach">
+    <div class="flex-1 bg-white rounded-2xl border border-ink-50 shadow-inner overflow-hidden focus-within:ring-2 focus-within:ring-brand-100 transition-all">
+      <textarea name="item_text" rows="1"
+                placeholder="Agrega una reflexión para esta pregunta..."
+                onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); this.form.requestSubmit(); }"
+                oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px';"
+                class="w-full px-4 py-3 text-sm focus:outline-none resize-none bg-transparent"
+                required></textarea>
+    </div>
+    <button type="submit"
+            class="bg-brand-100 hover:bg-brand-110 text-white w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 shrink-0"
+            aria-label="Agregar reflexión">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 2 9 18zm0 0v-8"></path></svg>
+    </button>
+  </form>
+
+  {# Strip de resultado real. Lo envolvemos en un wrapper con id estable
+     para poder re-renderizarlo via fetch despues de cada submit. #}
+  <div class="strip-wrapper" id="strip-{{ section.side.csv_value }}">
+    {% with fingerprint=section.fingerprint, side=section.side %}
+      {% include "_cuestionario_result_strip.html.j2" %}
+    {% endwith %}
+  </div>
+</div>

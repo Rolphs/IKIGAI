@@ -1,0 +1,109 @@
+{# ============================================================
+   VENN DE 4 ELIPSES — SVG PURO (callouts). Fuente unica de verdad.
+   ============================================================
+   Usado por:
+     - _venn4_hero.html.j2  (embebido en el snapshot HTML)
+     - export.render_venn_svg() (servido como .svg descargable)
+   Por eso lleva xmlns y el <style> ADENTRO del <svg>: asi funciona tanto
+   embebido en HTML como abierto/descargado como archivo .svg suelto.
+
+   CLARIDAD ANTE TODO: en un Venn-4 las 15 regiones son diminutas, asi que
+   NO escribimos el nombre dentro (se truncaba/encimaba). Cada region tiene
+   un PUNTO en su centroide y una LINEA GUIA hacia una etiqueta con el nombre
+   COMPLETO en los margenes. Cero palabras perdidas.
+   Requiere en contexto: venn_regions_by_key (region -> card dict).
+============================================================ #}
+
+{% set ROLE = {'a': 'Gusto', 'b': 'Habilidad', 'c': 'Mundo', 'd': 'Mercado'} %}
+
+{% macro callout(key, lx, ly, cx, cy, anchor, vr) -%}
+  {%- set card = vr.get(key) -%}
+  {%- set named = card and card.personal_name -%}
+  {%- set name = card.personal_name if named else (card.canonical_name if card else '?') -%}
+  {%- set parts = [] -%}
+  {%- for ch in key -%}{%- set _ = parts.append(ROLE[ch]) -%}{%- endfor -%}
+  {%- set combo = parts | join(' \u2229 ') -%}
+  {%- set tx = lx + 7 if anchor == 'start' else (lx - 7 if anchor == 'end' else lx) -%}
+  <line class="callout-line" x1="{{ cx }}" y1="{{ cy }}" x2="{{ tx }}" y2="{{ ly }}"/>
+  <circle class="{{ 'callout-dot-named' if named else 'callout-dot-pending' }}" cx="{{ cx }}" cy="{{ cy }}" r="3.5"/>
+  {# y ABSOLUTO por tspan (NO dy em): em en dy no lo soportan Inkscape/Office/
+     Illustrator y colapsan todo a una linea. Absoluto funciona en todos. #}
+  <text text-anchor="{{ anchor }}">
+    <tspan x="{{ lx }}" y="{{ ly }}" class="{{ 'callout-name-named' if named else 'callout-name-pending' }}">{{ name }}</tspan>
+    <tspan x="{{ lx }}" y="{{ ly + 13 }}" class="callout-combo">{{ combo }}</tspan>
+  </text>
+{%- endmacro %}
+
+<svg viewBox="-235 -45 950 605"
+     xmlns="http://www.w3.org/2000/svg"
+     class="w-full mx-auto block"
+     style="height: auto; background: #ffffff;"
+     role="img"
+     aria-label="Diagrama de Venn de 4 circulos con las sintesis personales del Ikigai">
+  <style>
+    .venn-label-title  { font: 700 13px system-ui, sans-serif; fill: #1d1d1d; }
+    .venn-label-sub    { font: 400 11px system-ui, sans-serif; fill: #5b5e64; }
+    .venn-ikigai       { font: 800 17px system-ui, sans-serif; fill: #7c4a06; }
+    .venn-ikigai-sub   { font: 600 9px system-ui, sans-serif; fill: #7c4a06; letter-spacing: 1px; }
+    .callout-line        { stroke: #cfd3d6; stroke-width: 1; fill: none; }
+    .callout-dot-named   { fill: #d81b76; }
+    .callout-dot-pending { fill: #74767c; }
+    .callout-name-named   { font: 700 12px system-ui, sans-serif; fill: #d81b76; }
+    .callout-name-pending { font: italic 400 11px system-ui, sans-serif; fill: #74767c; }
+    .callout-combo        { font: 600 8.5px system-ui, sans-serif; fill: #9a9da3; letter-spacing: .3px; }
+  </style>
+
+  {# ─── Las 4 elipses ─── #}
+  <g style="mix-blend-mode:multiply">
+    <ellipse cx="210" cy="220" rx="170" ry="90" transform="rotate(-45 210 220)"
+             fill="rgba(216,27,118,0.30)" aria-hidden="true"/>
+    <ellipse cx="270" cy="260" rx="170" ry="90" transform="rotate(-45 270 260)"
+             fill="rgba(245,158,11,0.40)" aria-hidden="true"/>
+    <ellipse cx="270" cy="220" rx="170" ry="90" transform="rotate( 45 270 220)"
+             fill="rgba(22,163,74,0.30)" aria-hidden="true"/>
+    <ellipse cx="210" cy="260" rx="170" ry="90" transform="rotate( 45 210 260)"
+             fill="rgba(220,38,38,0.28)" aria-hidden="true"/>
+  </g>
+
+  {# ─── Labels de los 4 circulos primitivos (esquinas, texto completo) ─── #}
+  {% set corners = [
+    ('a', 60, 70, 'start', 'Gusto', 'lo que amas'),
+    ('c', 420, 70, 'end', 'Mundo', 'lo que el mundo necesita'),
+    ('d', 60, 400, 'start', 'Mercado', 'lo que te pueden pagar'),
+    ('b', 420, 400, 'end', 'Habilidad', 'en lo que eres bueno')
+  ] %}
+  {% for region, x, y, anchor, role, hint in corners %}
+    {% set card = venn_regions_by_key.get(region) %}
+    <text text-anchor="{{ anchor }}">
+      <tspan x="{{ x }}" y="{{ y }}" class="venn-label-title">{{ role }}</tspan>
+      <tspan x="{{ x }}" y="{{ y + 18 }}" class="callout-name-named" style="font-size:13px">{{ card.personal_name if card and card.personal_name else (card.canonical_name if card else role) }}</tspan>
+      <tspan x="{{ x }}" y="{{ y + 33 }}" class="venn-label-sub">{{ hint }}</tspan>
+    </text>
+  {% endfor %}
+
+  {# ─── Callouts de las 11 intersecciones (ordenados por cy para no cruzar) ─── #}
+  {# IZQUIERDA (anchor start, lx=-225) #}
+  {{ callout('acd', -225, 150, 210, 210, 'start', venn_regions_by_key) }}
+  {{ callout('ad',  -225, 245, 110, 240, 'start', venn_regions_by_key) }}
+  {{ callout('abd', -225, 340, 210, 270, 'start', venn_regions_by_key) }}
+  {{ callout('ab',  -225, 435, 175, 305, 'start', venn_regions_by_key) }}
+  {# DERECHA (anchor end, lx=705) #}
+  {{ callout('ac',  705, 110, 240, 110, 'end', venn_regions_by_key) }}
+  {{ callout('cd',  705, 190, 305, 175, 'end', venn_regions_by_key) }}
+  {{ callout('abc', 705, 270, 270, 210, 'end', venn_regions_by_key) }}
+  {{ callout('bc',  705, 350, 370, 240, 'end', venn_regions_by_key) }}
+  {{ callout('bcd', 705, 430, 270, 270, 'end', venn_regions_by_key) }}
+  {# ABAJO centro — Docencia (bd) #}
+  {{ callout('bd', 240, 500, 240, 370, 'middle', venn_regions_by_key) }}
+
+  {# ─── Centro Ikigai (abcd) — corona arriba, linea al centro ─── #}
+  {% set ik = venn_regions_by_key.get('abcd') %}
+  <line class="callout-line" x1="240" y1="240" x2="240" y2="-4" style="stroke:#7c4a06;stroke-dasharray:3 3"/>
+  <circle cx="240" cy="240" r="4.5" fill="#7c4a06"/>
+  {% if ik and ik.personal_name %}
+    <text x="240" y="-24" text-anchor="middle" class="venn-ikigai">{{ ik.personal_name }}</text>
+    <text x="240" y="-10" text-anchor="middle" class="venn-ikigai-sub">IKIGAI</text>
+  {% else %}
+    <text x="240" y="-12" text-anchor="middle" class="venn-ikigai-sub">IKIGAI (sin acunar)</text>
+  {% endif %}
+</svg>

@@ -1,0 +1,13 @@
+name: default
+title: Mi Ikigai (demo)
+categories:
+- '1'
+- '2'
+- '3'
+- '4'
+summary: |
+  Demo ficticio: Mariana, ingeniera senior en WM. Su Ikigai converge en
+  "diseñar claridad para otros" — la interseccion de su amor por enseñar,
+  su habilidad con arquitectura, el mundo necesitando mentores, y un rol
+  que paga por hacerlo. Este proyecto se incluye solo como demo del flow
+  completo. Borralo y arranca el tuyo con `ikigai init mi-proyecto/`.

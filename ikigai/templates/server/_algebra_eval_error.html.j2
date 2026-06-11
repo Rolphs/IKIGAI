@@ -1,0 +1,24 @@
+﻿{#
+  Fragment de error para el builder de expresiones. Mostrado cuando
+  POST /sintesis/evaluate falla con ExpressionError.
+
+  Espera: `expr` (string que el usuario tipeo) y `error` (mensaje legible).
+#}
+<article class="expr-card bg-danger-10 border border-danger-100/30 rounded-lg p-3"
+         data-expr-key="error">
+  <header class="flex items-center gap-2 mb-1">
+    <span class="text-danger-100">⚠️</span>
+    <h3 class="text-sm font-semibold text-danger-100">Expresión inválida</h3>
+  </header>
+  <p class="text-xs text-ink-160 mb-2">
+    <code class="bg-white px-1.5 py-0.5 rounded border border-ink-50 notation">{{ expr }}</code>
+  </p>
+  <p class="text-xs text-ink-120 italic">{{ error }}</p>
+  <p class="text-[11px] text-ink-120 mt-2">
+    Ejemplos válidos:
+    <code class="notation">1 ∪ 2</code>,
+    <code class="notation">(1 ∪ 2) \ (3 ∪ 4)</code>,
+    <code class="notation">¬(1 ∪ 1b)</code>,
+    <code class="notation">U</code>
+  </p>
+</article>

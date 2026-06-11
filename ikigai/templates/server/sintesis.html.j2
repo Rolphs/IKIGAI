@@ -1,0 +1,330 @@
+{% extends "_base.html.j2" %}
+{% set active_section = 'sint' %}
+
+{% block title %}⚗️ Laboratorio · ikigai 🌷{% endblock %}
+
+{% block extra_head %}
+{% include "_sintesis_styles.html.j2" %}
+<style>html { scroll-behavior: smooth; }</style>
+{% endblock %}
+
+{% block page_title %}⚗️ Laboratorio de Alquimia · Síntesis{% endblock %}
+
+{% block header_right %}
+<span class="hidden sm:inline font-mono text-success-100">{{ audit.coverage_pct|int }}% cobertura</span>
+{% endblock %}
+
+{% block before_main %}
+{# Sub-toolbar sticky: progreso de sintesis. Por debajo del chrome (top-14). #}
+<div class="sticky top-14 z-20 bg-white border-b border-ink-50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 h-10 flex items-center gap-3">
+    <span class="text-[10px] font-bold uppercase tracking-widest text-ink-120 whitespace-nowrap">Síntesis</span>
+    <div class="flex-1 h-1.5 bg-ink-10 rounded-full overflow-hidden">
+      <div class="h-full bg-brand-100 transition-all duration-700" style="width: {{ audit.synthesis_pct }}%"></div>
+    </div>
+    <span class="text-[10px] font-bold text-brand-100 tabular-nums whitespace-nowrap">{{ audit.synthesis_pct|int }}%</span>
+    <button onclick="window.location.reload()" class="text-ink-100 hover:text-brand-100" title="Refrescar datos" aria-label="Refrescar datos">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+    </button>
+  </div>
+</div>
+
+{#
+  ═══════ MINI-NAV LATERAL (rail) ═══════
+  4 capas + 1 coda (Coherencia). Resaltado por IntersectionObserver al
+  scrollear. Click = smooth-scroll al ancla. Desaparece en <1024px.
+  Vive fuera de <main> porque es position: fixed (no afecta layout).
+#}
+<nav class="layer-rail" aria-label="Navegación por capas">
+  <a href="#layer-0" class="layer-rail-dot active" data-label="Fundamentos" aria-label="Ir a Fundamentos"></a>
+  <a href="#layer-1" class="layer-rail-dot" data-label="Vínculos" aria-label="Ir a Vínculos"></a>
+  <a href="#layer-2" class="layer-rail-dot" data-label="Sinergias" aria-label="Ir a Sinergias"></a>
+  <a href="#layer-3" class="layer-rail-dot" data-label="Propósito" aria-label="Ir a Propósito"></a>
+  <a href="#coherencia" class="layer-rail-dot" data-label="Coherencia" aria-label="Ir a Coherencia"></a>
+</nav>
+{% endblock %}
+
+{% block main %}
+{#
+  ═══════ MAIN: 4 capas + coda ═══════
+  Todo a la vista. Jerarquía visual hace el trabajo de "focus" sin
+  esconder nada.
+#}
+<main class="flex-1 max-w-7xl mx-auto w-full px-4 py-10">
+
+  {# ───── CAPA 0: FUNDAMENTOS ───── #}
+  {% set l0_all   = intersection_cards | selectattr('layer', 'equalto', 0) | list %}
+  {% set l0_named = l0_all | selectattr('personal_name') | list | length %}
+  {% set l0_total = l0_all | length %}
+
+  <section id="layer-0" class="layer-anchor">
+    <div class="mb-8 text-center max-w-2xl mx-auto">
+      <div class="flex items-center justify-center gap-3 mb-3">
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-100">Capa 1 · Base</span>
+        <span class="layer-progress {% if l0_named == l0_total %}complete{% endif %}">
+          <span class="layer-progress-dot"></span>
+          {{ l0_named }}/{{ l0_total }} nombrados
+        </span>
+      </div>
+      <h2 class="text-3xl font-bold text-ink-160 mb-2">🌱 Fundamentos</h2>
+      <p class="text-sm text-ink-120 italic text-pretty">Define la esencia de tus cuatro dominios básicos. Aquí acuñas las palabras que servirán como ladrillos para toda tu estructura vital.</p>
+    </div>
+
+    <div class="sint-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-10" style="--card-bands: 5;">
+      {% for c in l0_all if 'b' not in c.key %}
+        {% include "_intersection_card.html.j2" %}
+      {% endfor %}
+    </div>
+
+    <div class="bg-white rounded-xl border border-ink-50 p-6">
+      <h3 class="text-xs font-bold text-ink-100 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <span class="w-2 h-2 bg-danger-100 rounded-full"></span>
+        La Sombra (Complementos Negativos)
+      </h3>
+      <div class="sint-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4" style="--card-bands: 4;">
+        {% for c in l0_all if 'b' in c.key %}
+          {% include "_intersection_card.html.j2" %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <div class="layer-divider" aria-hidden="true"><div class="layer-divider-icon">🔗</div></div>
+
+  {# ───── CAPAS 1–2: VÍNCULOS Y SINERGIAS ───── #}
+  {% set layers = [
+    {'anchor': 'layer-1', 'layer': 1, 'kicker': 'Capa 2 · Diálogos',  'icon': '🔗', 'title': 'Vínculos',  'desc': 'Diálogos binarios. ¿Qué nombre emerge al conectar dos esencias? Es el primer paso hacia la integración.', 'grid_cls': 'xl:grid-cols-3', 'divider_icon': '⚡'},
+    {'anchor': 'layer-2', 'layer': 2, 'kicker': 'Capa 3 · Equilibrios', 'icon': '⚡', 'title': 'Sinergias', 'desc': 'Estados de equilibrio complejo. Al unir tres dominios, la síntesis se vuelve más rica y revela plenitud o tensión creativa.', 'grid_cls': 'xl:grid-cols-4', 'divider_icon': '☀️'}
+  ] %}
+
+  {% for step in layers %}
+    {% set cards = intersection_cards | selectattr('layer', 'equalto', step.layer) | list %}
+    {% set named = cards | selectattr('personal_name') | list | length %}
+
+    <section id="{{ step.anchor }}" class="layer-anchor">
+      <div class="mb-8 text-center max-w-2xl mx-auto">
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-100">{{ step.kicker }}</span>
+          <span class="layer-progress {% if named == cards|length %}complete{% endif %}">
+            <span class="layer-progress-dot"></span>
+            {{ named }}/{{ cards|length }} nombrados
+          </span>
+        </div>
+        <h2 class="text-3xl font-bold text-ink-160 mb-2">{{ step.icon }} {{ step.title }}</h2>
+        <p class="text-sm text-ink-120 italic text-pretty">{{ step.desc }}</p>
+      </div>
+
+      <div class="sint-grid grid grid-cols-1 md:grid-cols-2 {{ step.grid_cls }}" style="--card-bands: 6;">
+        {% for c in cards %}
+          {% include "_intersection_card.html.j2" %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="layer-divider" aria-hidden="true"><div class="layer-divider-icon">{{ step.divider_icon }}</div></div>
+  {% endfor %}
+
+  {# ───── CAPA 3: PROPÓSITO (centro, peso visual extra) ───── #}
+  {% set l3_cards = intersection_cards | selectattr('layer', 'equalto', 3) | list %}
+  {% set l3_named = l3_cards | selectattr('personal_name') | list | length %}
+
+  <section id="layer-3" class="layer-anchor layer-final">
+    <div class="max-w-2xl mx-auto mb-10">
+      <div class="flex items-center justify-center gap-3 mb-3">
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-140">Capa 4 · El Centro</span>
+        <span class="layer-progress {% if l3_named == l3_cards|length %}complete{% endif %}">
+          <span class="layer-progress-dot"></span>
+          {{ l3_named }}/{{ l3_cards|length }} nombrado
+        </span>
+      </div>
+      <h2 class="text-4xl font-bold text-ink-160 mb-3">☀️ Propósito</h2>
+      <p class="text-sm text-ink-120 italic text-pretty">El punto de convergencia total. Aquí acuñas la palabra o frase que integra todo tu sistema. Es tu voz única.</p>
+    </div>
+
+    <div class="max-w-md mx-auto">
+      {% for c in l3_cards %}
+        {% include "_intersection_card.html.j2" %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="layer-divider" aria-hidden="true"><div class="layer-divider-icon">🔍</div></div>
+
+  {# ───── CODA: COHERENCIA (audit + matriz + builder + cierre) ───── #}
+  <section id="coherencia" class="layer-anchor space-y-12">
+    <div class="text-center max-w-2xl mx-auto">
+      <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-100">Coda · Espejo</span>
+      <h2 class="text-3xl font-bold text-ink-160 mb-2 mt-3">🔍 Coherencia</h2>
+      <p class="text-sm text-ink-120 italic text-pretty">El espejo del sistema. Valida que tus síntesis tengan el respaldo de tus items reales y que no existan contradicciones en tu mapa.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {# Zen Audit Card #}
+      <div class="lg:col-span-1 bg-white rounded-xl border border-ink-50 p-6 shadow-sm">
+        <h3 class="text-sm font-bold uppercase tracking-tight text-brand-100 mb-4 flex items-center gap-2">
+          🔍 Zen Audit: Pendientes
+        </h3>
+        <div class="space-y-4">
+          <div class="p-3 bg-ink-5 rounded-lg border border-ink-50">
+            <p class="text-[11px] text-ink-120 font-bold uppercase mb-1">Items sin clasificar</p>
+            <p class="text-2xl font-mono font-bold">{{ audit.untagged_items_count }}</p>
+            <p class="text-[10px] text-ink-100 mt-1">Items en el inventario que no tienen ningún círculo asignado.</p>
+          </div>
+
+          {% if audit.gaps %}
+            <div class="space-y-2">
+              <p class="text-[11px] text-ink-120 font-bold uppercase">Brechas de sentido</p>
+              <div class="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                {% for gap in audit.gaps %}
+                  <div class="p-2.5 rounded border {% if gap.type == 'unnamed' %}bg-accent-10 border-accent-100{% else %}bg-danger-10 border-danger-100{% endif %}">
+                    <div class="flex justify-between items-start">
+                      <p class="text-[11px] font-bold">{{ gap.label }}</p>
+                      <span class="text-[9px] px-1 bg-white/50 rounded">{{ gap.items_count }} items</span>
+                    </div>
+                    <p class="text-[10px] mt-1">
+                      {% if gap.type == 'unnamed' %}Tienes items aquí pero no has nombrado la intersección.
+                      {% else %}Tienes un nombre pero ya no hay items que lo respalden.{% endif %}
+                    </p>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <div class="p-4 bg-success-10 border border-success-100 rounded-lg text-center">
+              <p class="text-xs font-bold text-success-110">✨ ¡Felicidades!</p>
+              <p class="text-[10px] text-success-110 mt-1">Has nombrado todas las regiones que tienen evidencia.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Jaccard Heatmap #}
+      <div class="lg:col-span-2 bg-white rounded-xl border border-ink-50 p-6 shadow-sm overflow-hidden flex flex-col">
+        <h3 class="text-sm font-bold uppercase tracking-tight text-ink-160 mb-6">
+          📊 Matriz de Solapamiento (Jaccard)
+        </h3>
+        <div class="flex-1 overflow-auto pt-12 pb-4">
+          <table class="mx-auto text-[10px] border-separate border-spacing-1">
+            <thead>
+              <tr>
+                <td></td>
+                {% for label in similarity_matrix.labels %}
+                  <th class="p-1 whitespace-nowrap overflow-hidden text-ellipsis max-w-[70px]" title="{{ label }}">
+                    <div class="-rotate-45 -translate-y-2 translate-x-3 origin-bottom-left text-[9px]">{{ label }}</div>
+                  </th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in similarity_matrix.data %}
+                {% set outer_loop = loop %}
+                <tr>
+                  <th class="p-1.5 text-right text-ink-120 font-normal whitespace-nowrap">{{ similarity_matrix.labels[loop.index0] }}</th>
+                  {% for score in row %}
+                    <td class="w-8 h-8 sm:w-10 sm:h-10 border border-ink-10 text-center font-mono rounded-sm transition-all hover:scale-110 cursor-help"
+                        style="background-color: rgba(0, 83, 226, {{ score }}); color: {{ 'white' if score > 0.4 else '#1d1d1d' }};"
+                        title="{{ similarity_matrix.labels[outer_loop.index0] }} ∩ {{ similarity_matrix.labels[loop.index0] }} = {{ score }}">
+                      {{ (score * 100)|int }}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-[10px] text-ink-100 text-center mt-4 italic">El número indica el % de items compartidos entre dos conceptos. Un 100 indica que son idénticos.</p>
+      </div>
+    </div>
+
+    {# Oráculo (Builder Avanzado) #}
+    <div class="bg-ink-10 rounded-xl p-8 border border-dashed border-ink-50">
+      <div class="max-w-2xl mx-auto">
+        <h3 class="text-sm font-bold text-ink-160 mb-4">🔍 Oráculo de Conjuntos (Builder Avanzado)</h3>
+        <form hx-post="{{ ikigai_url }}/sintesis/evaluate" hx-target="#builder-result" hx-swap="innerHTML" class="space-y-3">
+          <div class="flex gap-2">
+            <input name="expr" type="text" class="flex-1 text-sm notation px-4 py-2 border border-ink-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-100 shadow-inner" placeholder="ej. (1 ∪ 2) \ (3 ∪ 4)" required />
+            <button type="submit" class="px-6 py-2 bg-brand-100 hover:bg-brand-110 text-white text-sm font-bold rounded-lg shadow-md transition-transform active:scale-95">Evaluar</button>
+          </div>
+          <p class="text-[10px] text-ink-100 text-center">Operandos: <code class="notation">1 1b 2 2b 3 3b 4 4b U</code> · Operadores: <code class="notation">∪ ∩ \ △ ¬</code></p>
+          <div id="builder-result" class="mt-4"></div>
+        </form>
+      </div>
+    </div>
+
+    {# Cierre final #}
+    <div class="flex justify-center">
+      <button onclick="window.location.href='{{ ikigai_url }}/visualizador'"
+              class="group px-10 py-5 bg-success-100 hover:bg-success-110 text-white rounded-2xl font-bold shadow-2xl transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center gap-1">
+        <div class="flex items-center gap-3">
+          <span>Manifestar mi Mapa</span>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <span class="text-[10px] opacity-80 uppercase tracking-tighter">Todo el sistema en una sola pantalla</span>
+      </button>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block footer %}
+<footer class="max-w-7xl mx-auto px-4 py-8 border-t border-ink-50 text-xs text-ink-100 flex flex-col sm:flex-row justify-between gap-4">
+  <div>
+    <strong>⚗️ Laboratorio · ikigai 🌷</strong>
+    <span class="mx-2">·</span>
+    Proceso dialéctico de síntesis para el propósito.
+  </div>
+  <div class="font-mono text-[10px] opacity-75">
+    Local-first Engine · v0.4 — scroll dramatúrgico
+  </div>
+</footer>
+{% endblock %}
+
+{% block body_scripts %}
+<script src="/static/viz/viz_helpers.js"></script>
+<script src="/static/edit_items.js"></script>
+<script src="/static/algebra_crud.js"></script>
+
+<script>
+  /* ═══════════ NAV LATERAL: highlight por scroll ═══════════
+     IntersectionObserver marca el dot activo cuando su sección entra
+     al viewport. Sin librerías, sin polling. */
+  (function () {
+    const dots = document.querySelectorAll('.layer-rail-dot');
+    const sections = Array.from(dots).map(d =>
+      document.querySelector(d.getAttribute('href'))
+    );
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = sections.indexOf(entry.target);
+            if (idx >= 0) {
+              dots.forEach((d, i) => {
+                d.classList.toggle('active', i === idx);
+                if (i === idx) d.setAttribute('aria-current', 'location');
+                else d.removeAttribute('aria-current');
+              });
+            }
+          }
+        });
+      },
+      { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
+    );
+    sections.forEach((s) => s && observer.observe(s));
+  })();
+
+  /* ═══════════ HTMX feedback ═══════════ */
+  document.body.addEventListener('htmx:afterOnLoad', function (evt) {
+    if (evt.detail.xhr.status === 200) {
+      const path = evt.detail.requestConfig.path;
+      if (path.includes('/concept')) {
+        showToast("Síntesis guardada", "success");
+      }
+    } else if (evt.detail.xhr.status >= 400) {
+      showToast("Error en el laboratorio", "error");
+    }
+  });
+</script>
+{% endblock %}

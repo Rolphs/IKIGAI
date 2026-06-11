@@ -1,0 +1,244 @@
+{% extends "_base.html.j2" %}
+{% set active_section = 'inv' %}
+
+{% block title %}Inventario · ikigai 🌷{% endblock %}
+
+{% block extra_head %}
+<style>
+  .item-list:empty::after {
+    content: "Aún no hay items aquí. Agrega el primero arriba.";
+    color: #74767c;
+    font-size: 13px;
+    font-style: italic;
+  }
+  /* Highlight on item add */
+  .htmx-added { animation: flash 600ms ease; }
+  @keyframes flash {
+    from { background-color: #fff7d6; }
+    to   { background-color: transparent; }
+  }
+  /* WCAG 2.2 AA Target Size: el ✕ de cada item debe medir >= 24x24px
+     aun cuando solo aparece en hover. inline-flex + center evita que el
+     texto chico (✕ ≈ 10px de glifo) defina el hit-area. */
+  .chip-delete-inv {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    color: #74767c;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .chip-delete-inv:hover { color: #dc2626; background: #fef2f2; }
+</style>
+{% endblock %}
+
+{% block page_title %}📄 {{ master_title }} · Inventario{% endblock %}
+
+{% block header_right %}
+<span class="hidden sm:inline">💾 cambios al instante</span>
+{% endblock %}
+
+{% block main %}
+{# Sub-toolbar sticky: metadata + acciones (export/import). Estructura
+   identica al sticky de las otras paginas (top-14, h-10). #}
+<div class="sticky top-14 z-20 bg-white border-b border-ink-50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 h-10 flex items-center gap-3 text-xs text-ink-120">
+    <span class="uppercase tracking-wider font-bold whitespace-nowrap">Pivote</span>
+    <span class="font-mono text-ink-160 whitespace-nowrap">{{ master_viz_name }}</span>
+    <span class="hidden md:inline italic text-ink-100">— sé generoso (200+ items es lo normal)</span>
+    <span class="ml-auto flex items-center gap-2">
+      <span class="hidden lg:flex items-center gap-1 min-w-0 max-w-[40ch]">
+        Store:
+        <code class="bg-ink-10 px-1.5 py-0.5 rounded truncate" title="{{ items_path }}">{{ items_path }}</code>
+      </span>
+      <a href="{{ ikigai_url }}/inventario/csv/export" download
+         class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-ink-50 rounded hover:bg-brand-100 hover:text-white hover:border-brand-100 transition-colors"
+         title="Descarga el CSV completo.">⬇️ Exportar</a>
+      <label class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-ink-50 rounded hover:bg-brand-100 hover:text-white hover:border-brand-100 transition-colors cursor-pointer"
+             title="Reemplaza el CSV actual.">
+        ⬆️ Importar
+        <input type="file" id="csv-import-input" accept=".csv,text/csv" class="hidden" />
+      </label>
+    </span>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+  {% for cd in cuadrantes_data %}
+    {% set pair = cd.pair %}
+    <section class="bg-white rounded-xl border border-ink-50 shadow-sm overflow-hidden" id="cuadrante-{{ pair.key }}">
+      <header class="bg-ink-5 px-6 py-4 border-b border-ink-50">
+        <h2 class="text-xl font-bold text-ink-160">{{ loop.index }} · {{ pair.titulo }}</h2>
+        <p class="text-sm text-ink-120 mt-0.5">{{ pair.descripcion }}</p>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-ink-50">
+        <!-- Lado positivo -->
+        <div class="p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-xl">{{ pair.positivo.emoji }}</span>
+            <h3 class="font-semibold text-success-110">{{ pair.positivo.label }}</h3>
+            <span class="ml-auto text-xs px-2 py-0.5 bg-success-100 text-white rounded-full font-mono">{{ pair.positivo.csv_value }}.NNN</span>
+          </div>
+
+          <form hx-post="{{ ikigai_url }}/inventario/item"
+                hx-target="#list-{{ pair.positivo.csv_value }}"
+                hx-swap="beforeend settle:600ms"
+                hx-on::after-request="if(event.detail.successful) this.reset()"
+                class="flex gap-2 mb-3">
+            <input type="hidden" name="cuadrante" value="{{ pair.positivo.csv_value }}" />
+            <input type="text" name="item_text" required maxlength="280"
+                   placeholder="{{ pair.positivo.placeholder }}"
+                   class="flex-1 px-3 py-2 border border-ink-50 rounded text-sm focus:outline-none focus:border-success-100 focus:ring-2 focus:ring-success-100 focus:ring-opacity-20" />
+            <button type="submit" class="px-4 py-2 bg-success-100 text-white rounded text-sm font-medium hover:bg-success-110">
+              + Agregar
+            </button>
+          </form>
+
+          <ul id="list-{{ pair.positivo.csv_value }}" class="item-list space-y-1.5">
+            {% for item in cd.positivos %}
+              {% include "_item_row.html.j2" %}
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Lado negativo -->
+        <div class="p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-xl">{{ pair.negativo.emoji }}</span>
+            <h3 class="font-semibold text-danger-100">{{ pair.negativo.label }}</h3>
+            <span class="ml-auto text-xs px-2 py-0.5 bg-danger-100 text-white rounded-full font-mono">{{ pair.negativo.csv_value }}.NNN</span>
+          </div>
+
+          <form hx-post="{{ ikigai_url }}/inventario/item"
+                hx-target="#list-{{ pair.negativo.csv_value }}"
+                hx-swap="beforeend settle:600ms"
+                hx-on::after-request="if(event.detail.successful) this.reset()"
+                class="flex gap-2 mb-3">
+            <input type="hidden" name="cuadrante" value="{{ pair.negativo.csv_value }}" />
+            <input type="text" name="item_text" required maxlength="280"
+                   placeholder="{{ pair.negativo.placeholder }}"
+                   class="flex-1 px-3 py-2 border border-ink-50 rounded text-sm focus:outline-none focus:border-danger-100 focus:ring-2 focus:ring-danger-100 focus:ring-opacity-20" />
+            <button type="submit" class="px-4 py-2 bg-danger-100 text-white rounded text-sm font-medium hover:opacity-90">
+              + Agregar
+            </button>
+          </form>
+
+          <ul id="list-{{ pair.negativo.csv_value }}" class="item-list space-y-1.5">
+            {% for item in cd.negativos %}
+              {% include "_item_row.html.j2" %}
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+  {% endfor %}
+</main>
+{% endblock %}
+
+{% block footer %}
+<footer class="max-w-6xl mx-auto px-6 py-8 text-sm text-ink-120">
+  Cada acción se guarda en tu CSV en tiempo real. ¡No necesitas botón de "guardar todo"!
+  <span class="block mt-1">Para ver tu tulipán como Venns interactivos, usa el botón <span class="font-medium">Ver visualizador →</span></span>
+  <span class="block mt-1">Tip: borrado directo sin confirmación. <kbd class="px-1.5 py-0.5 bg-ink-10 border border-ink-50 rounded text-xs">Ctrl</kbd>+<kbd class="px-1.5 py-0.5 bg-ink-10 border border-ink-50 rounded text-xs">Z</kbd> deshace los últimos 5. <span class="mx-2">·</span> <strong>Doble-click</strong> sobre el texto para editar (<kbd class="px-1.5 py-0.5 bg-ink-10 border border-ink-50 rounded text-xs">Enter</kbd> guarda, <kbd class="px-1.5 py-0.5 bg-ink-10 border border-ink-50 rounded text-xs">Esc</kbd> cancela).</span>
+</footer>
+{% endblock %}
+
+{% block toasts %}
+{# Inventario usa su propio undo-toast inline (no el toast generico),
+   asi que override el bloque para inyectar el HTML aqui en lugar de
+   incluir _toasts.html.j2. #}
+<div id="undo-toast"
+     role="status"
+     aria-live="polite"
+     class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink-160 text-white px-4 py-3 rounded-lg shadow-lg text-sm flex items-center gap-3 opacity-0 pointer-events-none transition-opacity duration-200 z-50">
+  <span id="undo-toast-text">—</span>
+  <button type="button" id="undo-toast-btn"
+          class="px-2 py-1 bg-white text-ink-160 rounded text-xs font-semibold hover:bg-accent-100">
+    Deshacer (Ctrl+Z)
+  </button>
+</div>
+{% endblock %}
+
+{% block body_scripts %}
+<script src="/static/edit_items.js"></script>
+<script>
+  // Wiring del inventario sobre el modulo compartido EditItems.
+  // El inventario usa HTMX para add+delete (no fetch), asi que solo
+  // interceptamos el htmx:beforeRequest del DELETE para empujar al undo.
+  (function () {
+    EditItems.bindGlobalShortcuts();
+
+    // Cuando HTMX dispara el DELETE, capturamos el <li> que esta por desaparecer.
+    document.body.addEventListener("htmx:beforeRequest", (e) => {
+      const btn = e.detail.elt;
+      if (!btn || btn.getAttribute("hx-delete")?.includes("/inventario/item/") !== true) return;
+      const li = btn.closest("li");
+      if (!li) return;
+      EditItems.pushUndo({
+        id: li.dataset.itemId,
+        cuadrante: li.dataset.cuadrante,
+        text: li.dataset.itemText,
+        listId: li.parentElement?.id,
+      });
+    });
+
+    // Cuando se hace undo, reinsertar el HTML al final del UL original.
+    EditItems.registerOnRestore((entry, html) => {
+      const list = entry.listId ? document.getElementById(entry.listId) : null;
+      if (!list) {
+        EditItems.showToast("No encontre donde reinsertar (recarga la pagina)");
+        return;
+      }
+      list.insertAdjacentHTML("beforeend", html);
+      if (window.htmx) window.htmx.process(list.lastElementChild);
+    });
+
+    // Doble-click sobre .item-text => inline edit
+    document.body.addEventListener("dblclick", (e) => {
+      const span = e.target.closest(".item-text");
+      if (!span) return;
+      const li = span.closest("li");
+      if (!li) return;
+      EditItems.editInline(span, li);
+    });
+
+    // ─── Import CSV: file picker → confirm → POST → reload ───
+    const importInput = document.getElementById("csv-import-input");
+    if (importInput) {
+      importInput.addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const ok = confirm(
+          `¿Reemplazar el CSV actual con "${file.name}" (${(file.size / 1024).toFixed(1)} KB)?\n\n` +
+          `Esto sobreescribe todos los items existentes. La operacion no se puede deshacer.`
+        );
+        if (!ok) { importInput.value = ""; return; }
+        const fd = new FormData();
+        fd.append("file", file);
+        try {
+          const r = await fetch(`{{ ikigai_url }}/inventario/csv/import`, { method: "POST", body: fd });
+          if (!r.ok) {
+            const err = await r.json().catch(() => ({ detail: r.statusText }));
+            EditItems.showToast(`Error al importar: ${err.detail || r.statusText}`);
+            importInput.value = "";
+            return;
+          }
+          const data = await r.json();
+          EditItems.showToast(`✓ Importadas ${data.n_rows} filas. Recargando...`);
+          setTimeout(() => window.location.reload(), 600);
+        } catch (err) {
+          EditItems.showToast(`Error de red: ${err.message}`);
+          importInput.value = "";
+        }
+      });
+    }
+  })();
+</script>
+{% endblock %}

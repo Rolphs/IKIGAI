@@ -1,0 +1,9 @@
+{# Preview del slug derivado. Lo inyecta GET /_new/slug-preview via HTMX
+   cada vez que el usuario teclea en el campo "Nombre del ikigai".
+   `slug` viene ya derivado por el server (fuente unica: derive_unique_slug). #}
+{% if slug %}
+<span class="text-ink-100">URL:</span>
+<code class="bg-ink-10 px-1.5 py-0.5 rounded text-brand-100">/u/{{ slug }}</code>
+{% else %}
+<span class="text-ink-50">Escribe un nombre para ver su URL…</span>
+{% endif %}
