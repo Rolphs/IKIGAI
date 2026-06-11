@@ -1,6 +1,6 @@
 [project]
 name = "ikigai-tulipan"
-version = "3.0.0"
+version = "3.1.0"
 description = "Web app local-first para construir tu Ikigai personal: cuestionario, inventario taggeable, sintesis dialectica y visualizacion Venn de 4 circulos. Para autoconocimiento, mentoring y planeacion de carrera."
 authors = [{ name = "Raúl Mercado", email = "raul.mercado.bustamante@gmail.com" }]
 readme = "README.md"
