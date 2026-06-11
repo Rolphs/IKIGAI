@@ -284,8 +284,9 @@ def add_with_generated_id(path: Path, cuadrante_value: str, **fields: str) -> It
             f"cuadrante inválido '{cuadrante_value}'. "
             f"Válidos: {sorted(VALID_CUADRANTES)}"
         )
-    items = read_all(path)
-    new_id = _next_id_from_items(items, cuadrante_value)
-    item = Item(id=new_id, cuadrante=cuadrante_value, **fields)
-    _append_line(path, item)
+    with keyed_lock(str(path)):
+        items = read_all(path)
+        new_id = _next_id_from_items(items, cuadrante_value)
+        item = Item(id=new_id, cuadrante=cuadrante_value, **fields)
+        _append_line(path, item)
     return item

@@ -34,7 +34,7 @@ Eso levanta la app en **http://127.0.0.1:8000/** y abre el navegador.
 
 ## Qué es esto
 
-Web app **local-first** (FastAPI + HTMX + Tailwind, SQLite/JSONL — sin nube)
+Web app **local-first** (FastAPI + HTMX + Tailwind, JSONL + YAML — sin nube)
 para construir tu **Ikigai** personal: cuestionario → inventario taggeable →
 síntesis dialéctica → visualización en **Venn de 4 círculos**. Todo corre en
 tu máquina; tus reflexiones nunca salen de tu disco.
@@ -88,7 +88,7 @@ todos los nombres completos (callouts con líneas guía).
 ```bat
 uv run pytest -q
 ```
-Debería decir algo como `512 passed`. Y `http://127.0.0.1:8000/health`
+Debería decir algo como `525 passed`. Y `http://127.0.0.1:8000/health`
 responde `{"status":"ok"}`.
 
 ---

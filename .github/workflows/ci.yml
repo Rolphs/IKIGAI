@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancela runs viejos de la misma rama/PR si llega uno nuevo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-type-test:
+    name: Lint · Types · Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Crear entorno e instalar (con dev deps)
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
+
+      - name: Ruff (lint + formato de imports)
+        run: uv run ruff check .
+
+      - name: Mypy (tipos)
+        run: uv run mypy ikigai/
+
+      - name: Pytest
+        run: uv run pytest -q
+
+  package-smoke:
+    name: Build wheel · Smoke test del paquete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Buildear el wheel
+        run: uv build --wheel
+
+      - name: Instalar el wheel en un entorno LIMPIO y probarlo
+        # Esto blinda que templates/, static/ y _demo_data/ viajen DENTRO del
+        # wheel (no solo en el checkout editable). Si faltaran, `init --demo`
+        # o el render de la página fallarían.
+        run: |
+          set -euo pipefail
+          uv venv /tmp/smoke
+          uv pip install --python /tmp/smoke "$(ls dist/*.whl)"
+
+          # 1) El CLI arranca y reporta versión.
+          /tmp/smoke/bin/ikigai --version
+
+          # 2) El demo se materializa (requiere _demo_data en el wheel).
+          /tmp/smoke/bin/ikigai init /tmp/ws --demo
+
+          # 3) El server levanta y sirve.
+          /tmp/smoke/bin/ikigai serve /tmp/ws --port 8123 &
+          SERVER_PID=$!
+          # Espera a que el puerto responda (hasta ~15s).
+          for _ in $(seq 1 15); do
+            curl -fsS http://127.0.0.1:8123/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          # /health (sin templates).
+          curl -fsS http://127.0.0.1:8123/health | grep -q '"status":"ok"'
+          # CSS vendorizado servido (static empaquetado).
+          curl -fsS http://127.0.0.1:8123/static/tailwind.css >/dev/null
+          # La página del demo renderiza (templates empaquetados).
+          curl -fsSL http://127.0.0.1:8123/ | grep -qi ikigai
+
+          kill "$SERVER_PID"
+          echo "Smoke test OK ✅"

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from ikigai import jsonl_store
 from ikigai.cuadrantes import VALID_CUADRANTES
+from ikigai.locks import keyed_lock
 from ikigai.models import Item
 
 # Schema canónico de columnas que escribimos/leemos en CSV.
@@ -161,12 +162,15 @@ def parse_and_validate_csv_text(text: str) -> list[dict[str, str]]:
 def import_csv_text(jsonl_path: Path, text: str) -> int:
     """Reemplaza completamente el JSONL con el contenido validado del CSV.
 
-    Escritura atómica (delega en `jsonl_store.write_all`).
+    Escritura atómica (delega en `jsonl_store.write_all`). Toma el mismo lock
+    por-archivo que los demás mutadores del store (write_all es un primitivo
+    sin lock), para no pisar un append/update concurrente.
     Devuelve el número de items importados.
     """
     rows = parse_and_validate_csv_text(text)
     items = [_csv_row_to_item(row) for row in rows]
-    jsonl_store.write_all(jsonl_path, items)
+    with keyed_lock(str(jsonl_path)):
+        jsonl_store.write_all(jsonl_path, items)
     return len(items)
 
 

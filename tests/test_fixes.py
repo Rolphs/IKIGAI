@@ -5,14 +5,18 @@ Cubre:
   - El import CSV rechaza scores fuera de rango (antes pasaban)
   - El handler global de errores ESCAPA el mensaje (anti-XSS) y los 4xx
     conservan su status (no los traga el catch-all de 500)
+  - Las escrituras concurrentes al store JSONL se serializan (sin IDs
+    duplicados ni items perdidos)
 """
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
+from ikigai import jsonl_store
 from ikigai.models import Item
 from ikigai.portability import CsvImportError, import_csv_text
 from ikigai.server import create_app
@@ -80,3 +84,32 @@ def test_4xx_not_masked_as_500(tmp_path: Path) -> None:
     client = TestClient(app)
     r = client.get("/u/no-existe/inventario")
     assert r.status_code == 404
+
+
+# ─── Concurrencia del store JSONL ────────────────────────────────────────
+
+def test_concurrent_adds_no_dup_ids_no_loss(tmp_path: Path) -> None:
+    """N writers en paralelo sobre el MISMO archivo no pierden ni duplican.
+
+    Sin el keyed_lock, dos `add_with_generated_id` que leen el mismo max_seq
+    generan el mismo id y un append pisa al otro -> items perdidos o ids
+    duplicados. Con el lock, los N items quedan con ids únicos.
+    """
+    path = tmp_path / "tulipan.jsonl"
+    n = 40
+    barrier = threading.Barrier(n)  # maximiza el solapamiento real
+
+    def worker(i: int) -> None:
+        barrier.wait()
+        jsonl_store.add_with_generated_id(path, "1", item=f"item-{i}")
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    items = jsonl_store.read_all(path)
+    ids = [it.id for it in items]
+    assert len(items) == n, f"se perdieron items: {len(items)} de {n}"
+    assert len(set(ids)) == n, f"ids duplicados: {sorted(ids)}"

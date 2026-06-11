@@ -38,11 +38,21 @@ proyecto por completo y lo endurece para vivir como software libre autónomo.
 - **Validación de scores**: nuevo `Item.validate()` (rango 1-5) aplicado en el
   endpoint y en el import CSV (antes un CSV editado podía colar valores fuera
   de rango).
+- **Concurrencia del store JSONL**: `append`/`update`/`delete`/
+  `add_with_generated_id` e import CSV ahora toman `keyed_lock` por-archivo
+  (mismo patrón que el storage YAML). Cierra una brecha de read-modify-write
+  donde dos requests rápidos podían duplicar IDs o perder escrituras.
 - **Repo**: se purga de la historia un binario de 46MB que se había colado y
   el workspace demo de runtime; `.gitignore` corregido.
 
+### Added (infra)
+- **CI** (`.github/workflows/ci.yml`): lint (ruff) + tipos (mypy) + tests
+  (pytest), más un job que buildea el wheel, lo instala en un entorno limpio y
+  corre un smoke test (CLI, `init --demo`, `/health`, render de página y CSS)
+  para blindar que templates/static/`_demo_data` viajen dentro del paquete.
+
 ### Notes
-- 524 tests verdes · ruff y mypy limpios.
+- 525 tests verdes · ruff y mypy limpios.
 
 ---
 
