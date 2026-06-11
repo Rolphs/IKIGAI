@@ -6,6 +6,18 @@ respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
+## [Unreleased]
+
+### Removed
+- **Soporte N=5 del motor Venn**: el engine queda capado a 4 círculos, igual
+  que el producto. Se eliminan las 5 elipses de Grünbaum (`viz_geometry.js`),
+  la letra `e` de `CIRCLE_LETTERS` y `MAX_CIRCLES` baja de 5 a 4
+  (`viz_models.py`). El endpoint `/visualizador/categories` ahora valida
+  contra `MAX_CIRCLES` en vez de un 4 hardcodeado. Documentación (README) y
+  tests alineados: dato, geometría y producto comparten el mismo tope, N=4.
+
+---
+
 ## [3.0.0] — 2026-06-11
 
 **Release pública: proyecto independiente, sin dependencias ni branding corporativo.**

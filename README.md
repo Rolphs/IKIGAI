@@ -103,10 +103,10 @@ el slug a mano para el 1% que lo necesite.
 - **Una fuente de verdad**: Los conceptos vienen de Síntesis, los items del Inventario.
 - **Venn Dinámico**: Badges que muestran tus **palabras-síntesis** en lugar de números.
 - **Venn engine v2** (v2.1.0): la geometría ya no depende de hitboxes hardcodeados.
-  - **N = 0 a 5 círculos**: desde solo-universo hasta las 5 elipses de Grünbaum (31 regiones). El app clásico opera 0-4; el engine soporta hasta 5.
+  - **N = 0 a 4 círculos**: desde solo-universo hasta las 4 elipses de Edwards (15 regiones). Engine y app comparten el mismo tope: 4.
   - **Highlight de forma real**: al hacer hover/activar una región se ilumina su **forma exacta** (lúnula/triángulo curvo), no un círculo aproximado.
   - **Hitboxes derivados de la geometría**: se muestrea el lienzo y se calcula centroide + área por región → cero tuning frágil, sirve para cualquier N.
-  - **Paleta generativa**: los 4 colores base del proyecto (rosa/ámbar/verde/rojo + violeta para el 5º) extendidos por golden-angle más allá de 5 círculos.
+  - **Paleta generativa**: los 4 colores base del proyecto (rosa/ámbar/verde/rojo) con fallback por golden-angle.
   - **Hint de descubribilidad**: los badges con concepto laten suave al cargar (respeta `prefers-reduced-motion`).
 - **Tooltip Inteligente**: Hover para ver el concepto completo si es muy largo.
 - **Barra de Progreso**: Visualiza cuánto te falta para terminar de sintetizar todo tu árbol.

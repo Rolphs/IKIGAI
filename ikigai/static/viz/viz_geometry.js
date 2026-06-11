@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════
- * viz_geometry.js — Motor de geometría del diagrama de Venn (0–5 conjuntos)
+ * viz_geometry.js — Motor de geometría del diagrama de Venn (0–4 conjuntos)
  *
  * Función pura `vennGeometry(n)` → { viewBox, shapes, labelOffsets }
  * `computeRegionGeometry(shapes, viewBox)` → { key: {x,y,r,area} }  (DERIVADO)
@@ -7,18 +7,17 @@
  *
  * NOTA TOPOLÓGICA: no se puede dibujar un Venn de 4 con círculos manteniendo
  * las 15 regiones visibles (teorema clásico). N=4 usa elipses inclinadas
- * (configuración Edwards 1989). N=5 usa las 5 elipses de Grünbaum (las mismas
- * coordenadas que la librería pyvenn), que producen las 31 regiones.
+ * (configuración Edwards 1989). El tope del motor es N=4, igual que el
+ * producto (el endpoint /categories valida máximo 4 categorías).
  *
  * MEJORAS v2 (motor genérico):
  *   1. Hitboxes DERIVADOS de la geometría (sampling + centroide + declutter),
  *      no más {x,y,r} a mano → cero tuning frágil, sirve para cualquier N.
  *   2. Highlight de REGIÓN REAL: cada región se ilumina con su forma exacta
  *      (intersección vía clip-paths encadenados − exclusión vía <mask>).
- *   3. Soporte N=5 (antes el frontend tenía "abcde" a medias).
- *   4. Paleta GENERATIVA colorFor(i, n) (preserva los 4 colores base
+ *   3. Paleta GENERATIVA colorFor(i, n) (preserva los 4 colores base
  *      clásicos; genera más por golden-angle si hace falta).
- *   5. Hint de descubribilidad: pulso sutil en badges de regiones con concepto.
+ *   4. Hint de descubribilidad: pulso sutil en badges de regiones con concepto.
  *
  * Dependencias externas:
  *   - window.CSV_LABELS              (bootstrap inline desde Jinja)
@@ -28,20 +27,19 @@
  *   - escapeXml      (viz_helpers.js)
  * ═══════════════════════════════════════════════════════════════════ */
 
-const LETTERS = "abcde";
+const LETTERS = "abcd";
 
 // ── Paleta GENERATIVA ──────────────────────────────────────────────
-// Los primeros 5 son fijos (preservan la identidad visual del
-// Ikigai clásico: blue/spark/green/red + un 5º morado). Más allá de 5,
+// Los primeros 4 son fijos (preservan la identidad visual del
+// Ikigai clásico: brand/spark/green/red). Más allá de 4,
 // se generan por golden-angle en HSL para no repetir matiz.
 const BASE_FILL = [
   "rgba(216,27,118,0.30)",   // a · brand
   "rgba(245,158,11,0.40)", // b · accent
   "rgba(22,163,74,0.30)",   // c · success
   "rgba(220,38,38,0.28)",   // d · danger
-  "rgba(124,58,237,0.30)", // e · violet
 ];
-const BASE_SOLID = ["#d81b76", "#f59e0b", "#16a34a", "#dc2626", "#7c3aed"];
+const BASE_SOLID = ["#d81b76", "#f59e0b", "#16a34a", "#dc2626"];
 
 function colorFor(i, _n, alpha = 0.30) {
   if (i < BASE_FILL.length) return BASE_FILL[i];
@@ -117,29 +115,6 @@ function vennGeometry(n) {
       ],
     };
   }
-  if (n === 5) {
-    // 5 elipses de Grünbaum (coords pyvenn, normalizadas×460 con y invertida).
-    // Producen las 31 regiones del Venn simétrico de 5 conjuntos. Imposible
-    // con círculos (igual que N=4): se requieren elipses rotadas.
-    const rx = 200.1, ry = 115;
-    return {
-      viewBox: "-60 -50 580 580",
-      shapes: [
-        { kind: "ellipse", cx: 196.9, cy: 253.5, rx, ry, rot: -155 }, // a
-        { kind: "ellipse", cx: 215.7, cy: 210.2, rx, ry, rot: -82 },  // b
-        { kind: "ellipse", cx: 256.7, cy: 219.4, rx, ry, rot: -10 },  // c
-        { kind: "ellipse", cx: 265.9, cy: 243.8, rx, ry, rot: -118 }, // d
-        { kind: "ellipse", cx: 224.9, cy: 266.8, rx, ry, rot: -46 },  // e
-      ],
-      labelOffsets: [
-        { x: 9, y: 129, anchor: "start" },
-        { x: 331, y: 28, anchor: "middle" },
-        { x: 446, y: 120, anchor: "end" },
-        { x: 405, y: 437, anchor: "end" },
-        { x: 55, y: 437, anchor: "start" },
-      ],
-    };
-  }
   return null;
 }
 
@@ -210,12 +185,11 @@ function declutter(hits, minSep = 34, iters = 90) {
 function computeRegionGeometry(shapes, vb) {
   if (!shapes.length) return {};
   const [minX, minY, w, h] = vb;
-  // step=2 (no 3): el Venn de 5 elipses de Grünbaum tiene regiones-astilla
-  // (p.ej. "bc") que con step=3 captaban UNA sola muestra → hitbox de radio
-  // mínimo en un único punto, frágil ante redondeo float y potencialmente
-  // inclickeable. Con step=2 la región más chica pasa de 1 a 11 muestras.
-  // El sampling corre una sola vez por render (no por frame), así que el
-  // costo ~2.25× es imperceptible. NO subir sin re-auditar N=5.
+  // step=2 (no 3): con step grande las regiones-astilla pueden captar muy
+  // pocas muestras → hitbox de radio mínimo en un único punto, frágil ante
+  // redondeo float y potencialmente inclickeable. El sampling corre una sola
+  // vez por render (no por frame), así que el costo es imperceptible.
+  // NO subir sin re-auditar la robustez de las regiones chicas de N=4.
   const step = 2;
   const acc = {};
   for (let y = minY; y <= minY + h; y += step) {

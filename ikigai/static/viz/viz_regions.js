@@ -98,7 +98,7 @@ function describeRegion(key) {
   if (key === "out") return "Espacio exterior - items que no caen en ningun circulo activo";
   const letters = key.split("");
   const csvVals = letters.map(function (L) {
-    const idx = "abcde".indexOf(L);
+    const idx = "abcd".indexOf(L);
     return window.VIZ.categories[idx];
   });
   const parts = csvVals.map(function (v) {
@@ -114,7 +114,7 @@ function describeRegion(key) {
 function canonicalForRegion(key) {
   if (key === "out") return null;
   const csvVals = key.split("").map(function (L) {
-    const idx = "abcde".indexOf(L);
+    const idx = "abcd".indexOf(L);
     return window.VIZ.categories[idx];
   });
   const lookupKey = csvVals.slice().sort().join(",");

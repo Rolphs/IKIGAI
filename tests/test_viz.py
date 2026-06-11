@@ -40,13 +40,10 @@ class TestRegionKeys:
         # 2^4 - 1 = 15 regiones no vacias (Ikigai clasico completo)
         assert len(region_keys(4)) == 15
 
-    def test_n5_count(self) -> None:
-        # 2^5 - 1 = 31 regiones. El MOTOR soporta 5 primitivos (Venn de
-        # Grunbaum); el app Ikigai se queda en 4 por su semantica.
-        assert len(region_keys(5)) == 31
+    def test_n4_keys(self) -> None:
         # primera region single y ultima full-intersection bien formadas
-        assert region_keys(5)[0] == "a"
-        assert region_keys(5)[-1] == "abcde"
+        assert region_keys(4)[0] == "a"
+        assert region_keys(4)[-1] == "abcd"
 
     def test_n1(self) -> None:
         assert region_keys(1) == ["a"]
@@ -59,7 +56,7 @@ class TestRegionKeys:
         with pytest.raises(ValueError):
             region_keys(-1)
         with pytest.raises(ValueError):
-            region_keys(6)
+            region_keys(5)
 
 
 class TestRegionToCsvValues:
@@ -394,11 +391,10 @@ class TestVizSummary:
 # Regresion del MOTOR GEOMETRICO (viz_geometry.js)
 #
 # El frontend JS no tiene runner (no Node en CI). Estos tests portan la
-# geometria critica a Python para blindar un bug real encontrado en N=5:
-# con step=3, la region-astilla "bc" del Venn de Grunbaum captaba UNA sola
-# muestra -> hitbox de radio minimo en un punto -> fragil/inclickeable.
-# El fix bajo SAMPLE_STEP a 2. Si alguien lo vuelve a subir, estos tests
-# (y el tripwire del archivo JS) lo atrapan.
+# geometria critica a Python para blindar un bug real: con step=3, las
+# regiones-astilla podian captar UNA sola muestra -> hitbox de radio minimo
+# en un punto -> fragil/inclickeable. El fix bajo SAMPLE_STEP a 2. Si
+# alguien lo vuelve a subir, estos tests (y el tripwire del JS) lo atrapan.
 #
 # Las shapes de abajo ESPEJAN vennGeometry(n) en viz_geometry.js. Si cambian
 # alla, cambian aca (estan documentadas como espejo, no es DRY-violation
@@ -407,7 +403,7 @@ class TestVizSummary:
 import math  # noqa: E402
 from itertools import combinations  # noqa: E402
 
-_LETTERS = "abcde"
+_LETTERS = "abcd"
 
 
 def _venn_shapes(n: int):
@@ -426,15 +422,6 @@ def _venn_shapes(n: int):
             ("e", cx + 30, cy - 20, rx, ry, 45),
             ("e", cx - 30, cy + 20, rx, ry, 45),
         ], (-60, -20, 600, 540)
-    if n == 5:
-        rx, ry = 200.1, 115
-        return [
-            ("e", 196.9, 253.5, rx, ry, -155),
-            ("e", 215.7, 210.2, rx, ry, -82),
-            ("e", 256.7, 219.4, rx, ry, -10),
-            ("e", 265.9, 243.8, rx, ry, -118),
-            ("e", 224.9, 266.8, rx, ry, -46),
-        ], (-60, -50, 580, 580)
     raise ValueError(n)
 
 
@@ -477,7 +464,7 @@ SAMPLE_STEP = 2  # DEBE coincidir con `const step` en viz_geometry.js
 
 
 class TestVennGeometryRegression:
-    @pytest.mark.parametrize("n", [2, 3, 4, 5])
+    @pytest.mark.parametrize("n", [2, 3, 4])
     def test_every_region_has_a_hitbox(self, n: int) -> None:
         """Toda region que el backend genera debe ser muestreada (clickeable)."""
         expected = {
@@ -489,20 +476,19 @@ class TestVennGeometryRegression:
         missing = expected - sampled
         assert not missing, f"N={n}: regiones sin hitbox (inclickeables): {missing}"
 
-    def test_n5_thinnest_region_is_robust(self) -> None:
-        """La region-astilla mas chica de N=5 no debe ser de 1-2 muestras.
+    def test_n4_thinnest_region_is_robust(self) -> None:
+        """La region mas chica de N=4 no debe ser de 1-2 muestras.
 
-        Con step=3 "bc" caia a 1 muestra (fragil). step=2 la sube a ~11.
         Umbral conservador (>=5) para detectar regresiones de robustez.
         """
-        counts = _sample_counts(5, SAMPLE_STEP)
+        counts = _sample_counts(4, SAMPLE_STEP)
         expected = {
             "".join(c)
-            for size in range(1, 6)
+            for size in range(1, 5)
             for c in combinations(_LETTERS, size)
         }
         worst = min(counts[k] for k in expected)
-        assert worst >= 5, f"region mas fragil de N=5 tiene {worst} muestras (<5)"
+        assert worst >= 5, f"region mas fragil de N=4 tiene {worst} muestras (<5)"
 
     def test_js_step_matches_expectation(self) -> None:
         """Tripwire: el SAMPLE_STEP real en viz_geometry.js sigue siendo 2.
@@ -514,6 +500,6 @@ class TestVennGeometryRegression:
             / "ikigai" / "static" / "viz" / "viz_geometry.js"
         ).read_text(encoding="utf-8")
         assert "const step = 2;" in js, (
-            "viz_geometry.js cambio su sampling step; re-audita N=5 antes de "
-            "actualizar SAMPLE_STEP en este test"
+            "viz_geometry.js cambio su sampling step; re-audita la robustez "
+            "de las regiones chicas antes de actualizar SAMPLE_STEP aqui"
         )

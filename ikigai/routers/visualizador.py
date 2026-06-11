@@ -28,7 +28,7 @@ from ikigai import export, intersection_concepts, jsonl_store
 from ikigai.cuadrantes import CUADRANTES, all_csv_values, find_side, positive_csv_values
 from ikigai.item_queries import items_by_tag
 from ikigai.render import get_paths, render
-from ikigai.viz_models import Visualization, region_to_csv_values
+from ikigai.viz_models import MAX_CIRCLES, Visualization, region_to_csv_values
 from ikigai.viz_storage import (
     load_visualization,
     save_visualization,
@@ -154,9 +154,10 @@ def visualizador_set_categories(
     """Cambia el orden/seleccion de circulos del Venn. Max 4."""
     project_dir, _ = get_paths(request)
     cat_list = [c.strip() for c in categories.split(",") if c.strip()]
-    if len(cat_list) > 4:
+    if len(cat_list) > MAX_CIRCLES:
         raise HTTPException(
-            status_code=400, detail=f"Máximo 4 categorías (mandaste {len(cat_list)})"
+            status_code=400,
+            detail=f"Máximo {MAX_CIRCLES} categorías (mandaste {len(cat_list)})",
         )
     for c in cat_list:
         if find_side(c) is None:
