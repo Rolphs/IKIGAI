@@ -20,7 +20,7 @@ from importlib.metadata import PackageNotFoundError, version
 # coincidir con la de pyproject.toml. Se usa como fallback si la metadata del
 # paquete no esta disponible (checkout sin instalar, o editable installs que
 # no exponen la version via importlib.metadata).
-_FALLBACK_VERSION = "3.0.0"
+_FALLBACK_VERSION = "3.1.0"
 
 try:
     __version__ = version("ikigai-tulipan") or _FALLBACK_VERSION

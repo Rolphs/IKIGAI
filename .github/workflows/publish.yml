@@ -1,0 +1,53 @@
+name: Publish to PyPI
+
+# Se dispara al publicar un GitHub Release (tag vX.Y.Z). Usa *trusted
+# publishing* (OIDC): no requiere tokens ni secretos, pero hay que registrar
+# este repo+workflow como publisher en https://pypi.org/manage/account/publishing/
+# (proyecto: ikigai-tulipan, workflow: publish.yml, environment: pypi).
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Buildear sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Verificar que el tag coincide con pyproject.toml
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION="$(uv run --no-project python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag v$TAG no coincide con pyproject.toml ($VERSION)" >&2
+            exit 1
+          fi
+
+      - name: Buildear
+        run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publicar en PyPI (trusted publishing)
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # OIDC para trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1

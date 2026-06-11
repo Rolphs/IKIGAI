@@ -6,7 +6,7 @@ respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
-## [Unreleased]
+## [3.1.0] — 2026-06-11
 
 ### Removed
 - **Soporte N=5 del motor Venn**: el engine queda capado a 4 círculos, igual
