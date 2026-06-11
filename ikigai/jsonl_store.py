@@ -42,9 +42,18 @@ from typing import Any
 
 from ikigai import atomic_io
 from ikigai.cuadrantes import VALID_CUADRANTES
+from ikigai.locks import keyed_lock
 from ikigai.models import Item
 
 logger = logging.getLogger(__name__)
+
+# Concurrencia: las mutaciones del store son read-modify-write (o append con
+# chequeo de unicidad). FastAPI atiende requests en un thread pool, asi que dos
+# requests al MISMO archivo pueden pisarse (IDs duplicados, escrituras perdidas).
+# Serializamos por-path con keyed_lock (mismo patron que viz_storage). IMPORTANTE:
+# threading.Lock NO es reentrante, asi que SOLO los entrypoints publicos toman el
+# lock; los helpers internos (write_all, _append_line) quedan SIN lock para no
+# anidar. Si llamas write_all directo desde fuera (p.ej. import CSV), tomalo vos.
 
 # ─────────────────────────────────────────────────────────────
 # Serialización
@@ -189,9 +198,10 @@ def append(path: Path, item: Item) -> Item:
 
     Rechaza ids duplicados — la unicidad es invariante del store.
     """
-    if get(path, item.id) is not None:
-        raise ValueError(f"id duplicado: '{item.id}' ya existe en {path}")
-    _append_line(path, item)
+    with keyed_lock(str(path)):
+        if get(path, item.id) is not None:
+            raise ValueError(f"id duplicado: '{item.id}' ya existe en {path}")
+        _append_line(path, item)
     return item
 
 
@@ -201,28 +211,30 @@ def update(path: Path, item_id: str, **changed_fields: str) -> Item | None:
     Si el id no existe, devuelve None sin tocar el archivo.
     Si no hay cambios reales, igual reescribe (simple > clever).
     """
-    items = read_all(path)
-    new_items: list[Item] = []
-    updated: Item | None = None
-    for it in items:
-        if it.id == item_id and updated is None:
-            updated = replace(it, **changed_fields)
-            new_items.append(updated)
-        else:
-            new_items.append(it)
-    if updated is None:
-        return None
-    write_all(path, new_items)
+    with keyed_lock(str(path)):
+        items = read_all(path)
+        new_items: list[Item] = []
+        updated: Item | None = None
+        for it in items:
+            if it.id == item_id and updated is None:
+                updated = replace(it, **changed_fields)
+                new_items.append(updated)
+            else:
+                new_items.append(it)
+        if updated is None:
+            return None
+        write_all(path, new_items)
     return updated
 
 
 def delete(path: Path, item_id: str) -> bool:
     """Elimina el item con `id == item_id`. Devuelve True si borró algo."""
-    items = read_all(path)
-    new_items = [it for it in items if it.id != item_id]
-    if len(new_items) == len(items):
-        return False
-    write_all(path, new_items)
+    with keyed_lock(str(path)):
+        items = read_all(path)
+        new_items = [it for it in items if it.id != item_id]
+        if len(new_items) == len(items):
+            return False
+        write_all(path, new_items)
     return True
 
 
